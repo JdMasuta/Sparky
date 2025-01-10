@@ -1,13 +1,99 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BW Cable Audit System</title>
+    
+    <!-- Load React -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/17.0.2/umd/react.development.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.development.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
+
+    <!-- Load CSS -->
+    <link rel="stylesheet" href="src/assets/css/style.css">
+
+</head>
+<body>
+    <div id="root">
+        <nav class="nav">
+            <div class="nav-content">
+                <h1>BW Cable Audit System</h1>
+                <input type="search" placeholder="Search MO Number..." class="search-box">
+            </div>
+        </nav>
+
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-title">Today's Pulls</div>
+                    <div class="stat-value">47</div>
+                    <div class="stat-subtitle">Last updated 5 min ago</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-title">Active MOs</div>
+                    <div class="stat-value">12</div>
+                    <div class="stat-subtitle">Currently in progress</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-title">Pending Audit</div>
+                    <div class="stat-value">3</div>
+                    <div class="stat-subtitle">Requires review</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-title">Alerts</div>
+                    <div class="stat-value">2</div>
+                    <div class="stat-subtitle">Require attention</div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <div class="table-header">
+                    <h2>Recent Cable Pulls</h2>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>User</th>
+                            <th>MO Number</th>
+                            <th>Item</th>
+                            <th>Quantity</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>11/27/2024 11:53</td>
+                            <td>JOSHUA MARTIN</td>
+                            <td>M812670</td>
+                            <td>213876</td>
+                            <td>42</td>
+                            <td><span class="status-badge status-complete">Complete</span></td>
+                        </tr>
+                        <tr>
+                            <td>11/27/2024 09:37</td>
+                            <td>DONALD CHAVEZ</td>
+                            <td>M047540</td>
+                            <td>213876</td>
+                            <td>35</td>
+                            <td><span class="status-badge status-pending">Pending</span></td>
+                        </tr>
+                        <tr>
+                            <td>11/26/2024 13:02</td>
+                            <td>JOSEPH KOELLER</td>
+                            <td>M047540</td>
+                            <td>220602636</td>
+                            <td>58.957</td>
+                            <td><span class="status-badge status-complete">Complete</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
 </html>
