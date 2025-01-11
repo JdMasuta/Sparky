@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import '../../assets/css/style.css';
 
 const CablePullsTable = ({ initialData }) => {
     const [data, setData] = useState(initialData || []);
@@ -14,6 +15,10 @@ const CablePullsTable = ({ initialData }) => {
 
     const removeEntry = (index) => {
         setData(data.filter((_, i) => i !== index));
+    };
+
+    const updateEntry = (index, entry) => {
+        setData(data.map((item, i) => i === index ? entry : item));
     };
 
     return (
@@ -47,20 +52,22 @@ const CablePullsTable = ({ initialData }) => {
                                 </span>
                             </td>
                             <td>
-                                <button onClick={() => removeEntry(index)}>Remove</button>
+                            <select onChange={(e) => {
+                                if (e.target.value === 'Complete') {
+                                    updateEntry(index, { ...entry, status: 'Complete' });
+                                } else if (e.target.value === 'Remove') {
+                                    removeEntry(index);
+                                }
+                            }}>
+                                <option value="">Select Action</option>
+                                <option value="Complete">Complete</option>
+                                <option value="Remove">Remove</option>
+                            </select>
                             </td>
                         </tr>
                     ))}
                 </tbody>
             </table>
-            <button onClick={() => addEntry({
-                timestamp: '11/28/2024 10:00',
-                user: 'NEW USER',
-                moNumber: 'M123456',
-                item: '123456',
-                quantity: '10',
-                status: 'Pending'
-            })}>Add Entry</button>
         </div>
     );
 };

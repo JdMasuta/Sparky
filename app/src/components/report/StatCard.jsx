@@ -1,4 +1,5 @@
 import React from 'react';
+import '../../assets/css/style.css';
 
 const StatCard = ({ title, value, subtitle }) => (
     <div className="stat-card">
