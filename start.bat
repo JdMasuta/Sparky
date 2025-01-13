@@ -15,13 +15,13 @@ if not exist "backend" (
 
 :: Start Backend Server
 echo Starting backend server...
-cd backend
+cd backend\src
 if %errorlevel% neq 0 (
     echo Failed to change directory to backend.
     exit /b 1
 )
 start "Sparky Backend Server" cmd /k "npm run dev"
-cd ..
+cd ..\..
 
 :: Wait a moment for backend to initialize
 timeout /t 5

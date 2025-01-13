@@ -1,0 +1,1 @@
+SELECT * from checkouts WHERE timestamp >= '2025-01-06' AND timestamp < '2025-01-07';
