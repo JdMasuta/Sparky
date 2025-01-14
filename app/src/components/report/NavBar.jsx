@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import "../../assets/css/style.css";
 import CheckoutReport from "./CheckoutReportDashboard";
+import Modal from "./Modal.jsx";
 
 const NavBar = () => {
   const [date, setDate] = useState("");
   const [reportData, setReportData] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleGenerateReport = async () => {
     const response = await fetch("/api/checkout_report", {
@@ -16,6 +18,7 @@ const NavBar = () => {
     });
     const data = await response.json();
     setReportData(data);
+    setIsModalOpen(true);
   };
 
   return (
@@ -34,7 +37,9 @@ const NavBar = () => {
         >
           Generate Report
         </button>
-        {reportData && <CheckoutReport data={reportData} />}
+        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+          {reportData && <CheckoutReport data={reportData} />}
+        </Modal>
       </div>
     </nav>
   );
