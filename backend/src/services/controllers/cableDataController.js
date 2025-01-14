@@ -112,11 +112,18 @@ export const getCheckoutById = async (req, res) => {
 export const createCheckout = async (req, res) => {
   const checkoutData = req.body; // Get the checkout data from request body
 
-  const connection = await mysql.createConnection(config);
+  const connection = await mysql.createConnection(config.configString);
   try {
-    const result = await connection.execute("INSERT INTO checkouts SET ?", [
-      checkoutData,
-    ]);
+    const result = await connection.execute(
+      "INSERT INTO checkouts (user_id, project_id, item_id, quantity, timestamp) VALUES (?, ?, ?, ?, ?)",
+      [
+        checkoutData.user_id,
+        checkoutData.project_id,
+        checkoutData.item_id,
+        checkoutData.quantity,
+        checkoutData.timestamp,
+      ]
+    );
     res.status(201).json({ id: result.insertId });
   } catch (error) {
     console.error("Error creating checkout:", error);
@@ -154,13 +161,11 @@ export const getUserById = async (req, res) => {
       [userId]
     );
     if (rows.length > 0) {
-      res
-        .status(200)
-        .json({
-          name: rows[0].name,
-          user_id: rows[0].user_id,
-          user_type: rows[0].user_type,
-        });
+      res.status(200).json({
+        name: rows[0].name,
+        user_id: rows[0].user_id,
+        user_type: rows[0].user_type,
+      });
     } else {
       res.status(404).send("User not found");
     }
@@ -260,6 +265,51 @@ export const generateCheckoutReport = async (req, res) => {
     });
   } catch (error) {
     console.error("Error generating report:", error);
+    res.status(500).send("Internal Server Error");
+  } finally {
+    await connection.end();
+  }
+};
+
+export const getTableData = async (req, res) => {
+  const connection = await mysql.createConnection(config.configString);
+  try {
+    const usersQuery = `SELECT user_id, name FROM users`;
+    const projectsQuery = `SELECT project_id, project_number FROM projects`;
+    const itemsQuery = `SELECT item_id, sku FROM items`;
+
+    const [users] = await connection.execute(usersQuery);
+    const [projects] = await connection.execute(projectsQuery);
+    const [items] = await connection.execute(itemsQuery);
+
+    res.status(200).json({
+      users,
+      projects,
+      items,
+    });
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    res.status(500).send("Internal Server Error");
+  } finally {
+    if (connection) {
+      await connection.end();
+    }
+  }
+};
+
+// Method: Delete invalid checkouts
+export const deleteInvalidCheckouts = async (req, res) => {
+  const connection = await mysql.createConnection(config.configString);
+  try {
+    const result = await connection.execute(
+      "DELETE FROM checkouts WHERE quantity = '0';"
+    );
+    res.status(200).json({
+      message: "Invalid checkouts deleted",
+      affectedRows: result[0].affectedRows,
+    });
+  } catch (error) {
+    console.error("Error deleting invalid checkouts:", error);
     res.status(500).send("Internal Server Error");
   } finally {
     await connection.end();

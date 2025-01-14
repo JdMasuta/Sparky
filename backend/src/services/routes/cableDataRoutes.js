@@ -9,6 +9,8 @@ import {
   getItemById,
   getProjectById,
   generateCheckoutReport,
+  getTableData,
+  deleteInvalidCheckouts,
 } from "../controllers/cableDataController.js";
 
 const router = express.Router();
@@ -34,10 +36,16 @@ router.get("/project/:id", getProjectById);
 // Route: Get item by item_id
 router.get("/item/:id", getItemById);
 
+// Route: Get all users, projects, and items
+router.get("/table_data", getTableData);
+
 // Route: Create a new checkout
 router.post("/checkout", createCheckout);
 
 // Route: Create a new project
 router.post("/project", createProject);
+
+// Route: Delete all invalid checkouts
+router.delete("/purge", deleteInvalidCheckouts);
 
 export default router;
