@@ -146,7 +146,7 @@ export const createProject = async (req, res) => {
 
 // New method to get user name by user_id
 export const getUserById = async (req, res) => {
-  const userId = req.params; // Get the user_id from path parameter
+  const userId = req.params.id; // Get the user_id from path parameter
   const connection = await mysql.createConnection(config.configString);
   try {
     const [rows] = await connection.execute(
@@ -168,15 +168,15 @@ export const getUserById = async (req, res) => {
 
 // New method to get project name by project_id
 export const getProjectById = async (req, res) => {
-  const projectId = req.params;
+  const projectId = req.params.id;
   const connection = await mysql.createConnection(config.configString);
   try {
     const [rows] = await connection.execute(
-      "SELECT name FROM projects WHERE project_id = ?",
+      "SELECT project_number FROM projects WHERE project_id = ?",
       [projectId]
     );
     if (rows.length > 0) {
-      res.status(200).json({ name: rows[0].name });
+      res.status(200).json({ mo_num: rows[0].project_number });
     } else {
       res.status(404).send("Project not found");
     }
@@ -190,7 +190,7 @@ export const getProjectById = async (req, res) => {
 
 // New method to get item name by item_id
 export const getItemById = async (req, res) => {
-  const itemId = req.params;
+  const itemId = req.params.id;
   const connection = await mysql.createConnection(config.configString);
   try {
     const [rows] = await connection.execute(
@@ -204,6 +204,56 @@ export const getItemById = async (req, res) => {
     }
   } catch (error) {
     console.error("Error fetching item:", error);
+    res.status(500).send("Internal Server Error");
+  } finally {
+    await connection.end();
+  }
+};
+
+// Method: Generate checkout report by timestamp
+export const generateCheckoutReport = async (req, res) => {
+  const { timestamp } = req.body; // Get the timestamp from body
+
+  if (!timestamp) {
+    return res.status(400).send("Timestamp parameter is required");
+  }
+
+  const connection = await mysql.createConnection(config.configString);
+  try {
+    const [rows] = await connection.execute(
+      `SELECT 
+                p.project_number,
+                i.sku AS item_sku,
+                i.name AS item_name,
+                SUM(c.quantity) AS total_quantity
+            FROM 
+                checkouts c
+            JOIN 
+                projects p ON c.project_id = p.project_id
+            JOIN 
+                items i ON c.item_id = i.item_id
+            WHERE 
+                c.timestamp >= ?
+            GROUP BY 
+                p.project_number, i.sku, i.name
+            ORDER BY 
+                p.project_number, i.sku, i.name`,
+      [timestamp]
+    );
+
+    if (rows.length === 0) {
+      return res
+        .status(404)
+        .send("No data found for the specified time period");
+    }
+
+    res.status(200).json({
+      timestamp: timestamp,
+      total_records: rows.length,
+      data: rows,
+    });
+  } catch (error) {
+    console.error("Error generating report:", error);
     res.status(500).send("Internal Server Error");
   } finally {
     await connection.end();
