@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import "../../assets/css/style.css";
-import CheckoutReport from "./CheckoutReportDashboard";
+import CheckoutReport from "./CheckoutReportDashboard.jsx";
 import Modal from "./Modal.jsx";
 
 const NavBar = () => {

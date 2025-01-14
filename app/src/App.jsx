@@ -1,54 +1,25 @@
-import React, { useState } from "react";
-import NavBar from "./components/report/NavBar.jsx";
-import StatCard from "./components/report/StatCard.jsx";
-import CablePullsTable from "./components/report/CablePullsTable.jsx";
-import { useCheckoutData } from "./components/report/useCheckoutData.jsx";
-import FetchPullsData from "./components/report/useFetchPullsData.jsx";
-import CheckoutReport from "./components/report/CheckoutReportDashboard.jsx";
+import React from "react";
+import {
+  BrowserRouter as Router,
+  Route,
+  Routes,
+  Navigate,
+} from "react-router-dom";
+import Report from "./pages/Report.jsx";
+import Home from "./pages/Home.jsx";
+import Checkout from "./pages/Checkout.jsx";
 
 function App() {
-  const { initialData, error } = useCheckoutData();
-  const [todaysPulls, setTodaysPulls] = useState(0);
-  const [weeksPulls, setWeeksPulls] = useState(0);
-
-  if (error) {
-    return <div>Error loading data: {error}</div>;
-  }
-
   return (
-    <div>
-      <NavBar />
-      <FetchPullsData
-        setTodaysPulls={setTodaysPulls}
-        setWeeksPulls={setWeeksPulls}
-      />
-      <div className="container">
-        <div className="stats-grid">
-          <StatCard
-            title="Today's Pulls"
-            value={todaysPulls}
-            subtitle="Last updated just now"
-          />
-          <StatCard
-            title="This Week's Pulls"
-            value={weeksPulls}
-            subtitle="Last updated just now"
-          />
-          <StatCard
-            title="Active MOs"
-            value="N/A"
-            subtitle="Currently in progress"
-          />
-          <StatCard
-            title="Pending Audit"
-            value="N/A"
-            subtitle="Requires review"
-          />
-          <StatCard title="Alerts" value="N/A" subtitle="Require Attention" />
-        </div>
-        <CablePullsTable initialData={initialData} />
-      </div>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Navigate to="/home" />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/report" element={<Report />} />
+        <Route path="/checkout" element={<Checkout />} />
+        {/* Add more routes here as needed */}
+      </Routes>
+    </Router>
   );
 }
 
