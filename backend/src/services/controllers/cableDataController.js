@@ -144,17 +144,23 @@ export const createProject = async (req, res) => {
   }
 };
 
-// New method to get user name by user_id
+// New method to get user data by user_id
 export const getUserById = async (req, res) => {
   const userId = req.params.id; // Get the user_id from path parameter
   const connection = await mysql.createConnection(config.configString);
   try {
     const [rows] = await connection.execute(
-      "SELECT name FROM users WHERE user_id = ?",
+      "SELECT * FROM users WHERE user_id = ?",
       [userId]
     );
     if (rows.length > 0) {
-      res.status(200).json({ name: rows[0].name });
+      res
+        .status(200)
+        .json({
+          name: rows[0].name,
+          user_id: rows[0].user_id,
+          user_type: rows[0].user_type,
+        });
     } else {
       res.status(404).send("User not found");
     }

@@ -61,46 +61,6 @@ const CheckoutReport = ({
 
   return (
     <div className="space-y-6">
-      {/* Project Overview Section */}
-      <div className="bg-white rounded-lg p-6 shadow-sm">
-        <h2 className="text-lg font-semibold mb-4">
-          Project Quantities Overview
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Object.entries(projectStats.stats).map(([project, stats]) => (
-            <div
-              key={project}
-              onClick={() =>
-                setSelectedProject(selectedProject === project ? null : project)
-              }
-              className={`cursor-pointer p-4 rounded-lg border ${
-                selectedProject === project
-                  ? "border-blue-500 bg-blue-50"
-                  : "border-gray-200 hover:border-blue-300"
-              }`}
-            >
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-medium">{project}</span>
-                <span className="text-sm text-gray-600">
-                  {stats.items} items
-                </span>
-              </div>
-              <div className="h-2 bg-gray-100 rounded overflow-hidden">
-                <div
-                  className="h-full bg-blue-500"
-                  style={{
-                    width: `${(stats.total / projectStats.maxTotal) * 100}%`,
-                  }}
-                />
-              </div>
-              <div className="mt-2 text-sm text-gray-600">
-                Total: {stats.total.toLocaleString()}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Detailed Table Section */}
       <div className="bg-white rounded-lg p-6 shadow-sm">
         <div className="flex justify-between items-center mb-4">
