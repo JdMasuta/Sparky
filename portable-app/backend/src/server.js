@@ -2,8 +2,9 @@
 import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
-import fs from "fs";
-import path from "path";
+import { promises as fs } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 import { initializeDatabase, closeDatabase } from "./init/db.init.js";
 import {
   serverConfig,
@@ -12,11 +13,17 @@ import {
 import cableDataRoutes from "./services/routes/cableDataRoutes.js";
 import errorHandler from "./services/middleware/errorHandler.js";
 
+// Get the directory path for ES modules
+const currentFilePath = fileURLToPath(import.meta.url);
+const currentDirPath = dirname(currentFilePath);
+
 const app = express();
 
 // Ensure log directory exists
-if (!fs.existsSync(serverConfig.paths.logs)) {
-  fs.mkdirSync(serverConfig.paths.logs, { recursive: true });
+try {
+  await fs.mkdir(serverConfig.paths.logs, { recursive: true });
+} catch (err) {
+  console.error("Failed to create logs directory:", err);
 }
 
 // Initialize rate limiter
@@ -35,23 +42,28 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api", cableDataRoutes);
 
 // Serve static files from the frontend/dist directory
-app.use(express.static(path.join(__dirname, "../../frontend/dist")));
+// app.use(express.static(join(currentDirPath, "../../frontend/dist")));
 
 // Handle React routing by serving index.html for all unmatched routes
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../../frontend/dist/index.html"));
-});
+// app.get("*", (req, res) => {
+//   res.sendFile(join(currentDirPath, "../../frontend/dist/index.html"));
+// });
 
 app.use(errorHandler);
 
 // Setup logging based on environment
 if (serverConfig.environment === "development") {
-  const logStream = fs.createWriteStream(serverConfig.logging.file, {
-    flags: "a",
-  });
-  app.use((req, res, next) => {
+  const writeLog = async (message) => {
+    try {
+      await fs.appendFile(serverConfig.logging.file, message);
+    } catch (err) {
+      console.error("Failed to write to log file:", err);
+    }
+  };
+
+  app.use(async (req, res, next) => {
     const logMessage = `${new Date().toISOString()} ${req.method} ${req.url}\n`;
-    logStream.write(logMessage);
+    await writeLog(logMessage);
     console.log(logMessage.trim());
     next();
   });
@@ -71,37 +83,33 @@ const startServer = async () => {
     // Initialize database
     await initializeDatabase();
 
-    // Routes setup (to be added)
-    // app.use('/api/v1', routes);
-
     // Error handling middleware
-    app.use((err, req, res, next) => {
+    app.use(async (err, req, res, next) => {
       const errorMessage = `${new Date().toISOString()} ERROR: ${err.stack}\n`;
-      fs.appendFileSync(serverConfig.logging.file, errorMessage);
+      await fs.appendFile(serverConfig.logging.file, errorMessage);
       console.error(errorMessage);
       res.status(500).send("Something broke!");
     });
 
     // Start server
-    const server = app.listen(serverConfig.port, () => {
-      const startMessage = `Server running in ${serverConfig.environment} mode on port ${serverConfig.port}\n`;
-      fs.appendFileSync(
-        serverConfig.logging.file,
-        `${new Date().toISOString()} ${startMessage}`
-      );
+    const server = app.listen(serverConfig.port, async () => {
+      const startMessage = `${new Date().toISOString()} Server running in ${
+        serverConfig.environment
+      } mode on port ${serverConfig.port}\n`;
+      await fs.appendFile(serverConfig.logging.file, startMessage);
       console.log(startMessage.trim());
     });
 
     // Graceful shutdown
     const shutdown = async () => {
       const shutdownMessage = `${new Date().toISOString()} Server shutting down...\n`;
-      fs.appendFileSync(serverConfig.logging.file, shutdownMessage);
+      await fs.appendFile(serverConfig.logging.file, shutdownMessage);
       console.log(shutdownMessage.trim());
 
       await closeDatabase();
-      server.close(() => {
+      server.close(async () => {
         const closedMessage = `${new Date().toISOString()} Server closed\n`;
-        fs.appendFileSync(serverConfig.logging.file, closedMessage);
+        await fs.appendFile(serverConfig.logging.file, closedMessage);
         console.log(closedMessage.trim());
         process.exit(0);
       });
@@ -111,10 +119,10 @@ const startServer = async () => {
     process.on("SIGINT", shutdown);
   } catch (error) {
     const errorMessage = `${new Date().toISOString()} Failed to start server: ${error}\n`;
-    fs.appendFileSync(serverConfig.logging.file, errorMessage);
+    await fs.appendFile(serverConfig.logging.file, errorMessage);
     console.error(errorMessage.trim());
     process.exit(1);
   }
 };
 
-startServer();
+await startServer();

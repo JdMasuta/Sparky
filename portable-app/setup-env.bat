@@ -1,3 +1,3 @@
 @echo off
 SET PATH=%cd%\runtime\node-portable;%PATH%
-cmd /k
+start "Portable Node Environment" cmd /k

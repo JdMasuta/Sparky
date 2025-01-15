@@ -1,57 +1,52 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef } from "react";
 
 const FetchPullsData = ({ setTodaysPulls, setWeeksPulls }) => {
+  const fetchDataRef = useRef();
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const today = new Date();
-        const midnightToday = new Date(today.setUTCHours(0, 0, 0, 0))
-          .toISOString()
-          .slice(0, 19)
-          .replace("T", " ");
-        const midnightWeekAgo = new Date(today.setDate(today.getDate() - 7))
-          .toISOString()
-          .slice(0, 19)
-          .replace("T", " ");
+    const fetchData = createDebounce(async (signal) => {
+      const today = new Date();
+      const midnightToday = new Date(today.setUTCHours(0, 0, 0, 0))
+        .toISOString()
+        .slice(0, 19)
+        .replace("T", " ");
+      const midnightWeekAgo = new Date(today.setDate(today.getDate() - 7))
+        .toISOString()
+        .slice(0, 19)
+        .replace("T", " ");
 
-        console.log("Midnight today:", midnightToday);
-
-        const fetchTodaysPulls = fetch("/api/checkout_afterTime", {
+      const [todaysData, weeksData] = await Promise.all([
+        fetch("/api/checkout_afterTime", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ timestamp: midnightToday }),
-        });
-
-        const fetchWeeksPulls = fetch("/api/checkout_afterTime", {
+          signal,
+        }).then((res) => res.json()),
+        fetch("/api/checkout_afterTime", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ timestamp: midnightWeekAgo }),
-        });
+          signal,
+        }).then((res) => res.json()),
+      ]);
 
-        const [todaysResponse, weeksResponse] = await Promise.all([
-          fetchTodaysPulls,
-          fetchWeeksPulls,
-        ]);
+      setTodaysPulls(todaysData.length);
+      setWeeksPulls(weeksData.length);
+    }, 1000);
 
-        if (!todaysResponse.ok || !weeksResponse.ok) {
-          throw new Error("Failed to fetch data");
-        }
+    // Store the debounced function in a ref so we can clean it up
+    fetchDataRef.current = fetchData;
+    fetchData();
 
-        const todaysData = await todaysResponse.json();
-        const weeksData = await weeksResponse.json();
-
-        setTodaysPulls(todaysData.length);
-        setWeeksPulls(weeksData.length);
-      } catch (error) {
-        console.error("Error fetching data:", error);
+    return () => {
+      if (fetchDataRef.current) {
+        fetchDataRef.current.cancel();
       }
     };
-
-    fetchData();
   }, [setTodaysPulls, setWeeksPulls]);
 
   return null;
