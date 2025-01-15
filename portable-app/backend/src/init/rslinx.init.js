@@ -1,76 +1,47 @@
-import {
-  OPCUAClient,
-  MessageSecurityMode,
-  SecurityPolicy,
-  UserTokenType,
-  //TimestampToReturn,
-} from "node-opcua";
+import opcda from "node-opc-da";
 import config from "../services/config/rslinx.config.js";
 
-let client = null;
-let session = null;
+let server = null;
+let group = null;
 let connected = false;
 let connectionRetryCount = 0;
 const MAX_RETRIES = 3;
 
-export const initializeOPCUA = async () => {
+export const initializeOPCDA = async () => {
   try {
     // If already connected, return true
-    if (client && client.isConnected() && session) {
+    if (server && group && connected) {
       return true;
     }
 
     // Clean up any existing connections
     await disconnect();
 
-    // Initialize client with options
-    client = OPCUAClient.create({
-      applicationName: config.applicationName,
-      connectionStrategy: {
-        initialDelay: 1000,
-        maxRetry: MAX_RETRIES,
-        maxDelay: 5000,
-      },
-      securityMode: MessageSecurityMode[config.securityMode],
-      securityPolicy: SecurityPolicy[config.securityPolicy],
-      endpointMustExist: false,
+    // Create OPC DA client
+    const client = new opcda.Client();
+
+    // Connect to the RSLinx server
+    server = await client.connectServer({
+      progId: config.progId, // e.g., 'RSLinx OPC Server'
+      clsid: config.clsid, // RSLinx ClassID
     });
 
-    // Set up event handlers
-    client.on("backoff", (retry, delay) => {
-      console.warn(`Connection retry ${retry} in ${delay}ms`);
-      connectionRetryCount = retry;
+    console.log("Server connected");
+
+    // Create a group for our items
+    group = await server.addGroup({
+      name: config.groupName || "DefaultGroup",
+      updateRate: config.updateRate || 1000,
+      deadband: config.deadband || 0,
     });
 
-    client.on("connection_lost", () => {
-      console.error("Connection lost. Attempting to reconnect...");
-      connected = false;
-    });
-
-    client.on("connection_reestablished", () => {
-      console.log("Connection reestablished");
-      connected = true;
-    });
-
-    // Connect to the server
-    await client.connect(config.endpointUrl);
-    console.log("Client connected");
-
-    // Create session
-    session = await client.createSession({
-      userName: config.auth.username,
-      password: config.auth.password,
-      userIdentityInfo: {
-        type: UserTokenType.UserName,
-      },
-    });
-    console.log("Session created");
+    console.log("Group created");
 
     connected = true;
     connectionRetryCount = 0;
     return true;
   } catch (error) {
-    console.error("Failed to initialize OPC UA connection:", error.message);
+    console.error("Failed to initialize OPC DA connection:", error.message);
     connected = false;
 
     if (connectionRetryCount >= MAX_RETRIES) {
@@ -78,24 +49,25 @@ export const initializeOPCUA = async () => {
       throw new Error("Failed to establish connection after maximum retries");
     }
 
+    connectionRetryCount++;
     return false;
   }
 };
 
 export const disconnect = async () => {
   try {
-    if (session) {
-      await session.close();
-      session = null;
-      console.log("Session closed");
+    if (group) {
+      await group.remove();
+      group = null;
+      console.log("Group removed");
     }
 
-    if (client && client.isConnected()) {
-      await client.disconnect();
-      console.log("Client disconnected");
+    if (server) {
+      await server.disconnect();
+      server = null;
+      console.log("Server disconnected");
     }
 
-    client = null;
     connected = false;
   } catch (error) {
     console.error("Error during disconnect:", error.message);
@@ -103,8 +75,8 @@ export const disconnect = async () => {
   }
 };
 
-export const getSession = () => session;
-export const getClient = () => client;
+export const getServer = () => server;
+export const getGroup = () => group;
 export const isConnected = () => connected;
 
 // Cleanup on process termination
@@ -115,9 +87,9 @@ process.on("SIGTERM", async () => {
 });
 
 export default {
-  initializeOPCUA,
+  initializeOPCDA,
   disconnect,
-  getSession,
-  getClient,
+  getServer,
+  getGroup,
   isConnected,
 };

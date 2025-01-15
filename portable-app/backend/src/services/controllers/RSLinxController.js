@@ -1,16 +1,10 @@
-import {
-  AttributeIds,
-  DataType,
-  StatusCodes,
-  TimestampToReturn,
-} from "node-opcua";
 import config from "../config/rslinx.config.js";
 import {
-  initializeOPCUA,
-  getSession,
+  initializeOPCDA,
+  getServer,
+  getGroup,
   isConnected,
   disconnect,
-  getActiveSubscriptions,
 } from "../../init/rslinx.init.js";
 
 // Get all configured tags
@@ -38,21 +32,24 @@ export const getTagValue = async (req, res) => {
       return res.status(404).json({ error: "Tag not found" });
     }
 
-    const session = getSession();
-    if (!session) {
-      await initializeOPCUA();
+    const group = getGroup();
+    if (!group) {
+      await initializeOPCDA();
     }
 
-    const nodeToRead = {
-      nodeId: getNodeId(tag),
-      attributeId: AttributeIds.Value,
-    };
+    const item = await group.addItem({
+      itemID: tag,
+      active: true,
+    });
 
-    const [dataValue] = await session.read([nodeToRead]);
+    const value = await item.read();
+    await item.remove();
+
     res.json({
       tagName,
-      value: dataValue.value.value,
-      timestamp: dataValue.sourceTimestamp,
+      value: value.value,
+      timestamp: value.timestamp,
+      quality: value.quality,
     });
   } catch (error) {
     res
@@ -72,27 +69,18 @@ export const writeTagValue = async (req, res) => {
       return res.status(404).json({ error: "Tag not found or not writable" });
     }
 
-    const session = getSession();
-    if (!session) {
-      await initializeOPCUA();
+    const group = getGroup();
+    if (!group) {
+      await initializeOPCDA();
     }
 
-    const nodeToWrite = {
-      nodeId: getNodeId(tag),
-      attributeId: AttributeIds.Value,
-      value: {
-        value: {
-          dataType: getDataType(tagName),
-          value: value,
-        },
-      },
-    };
+    const item = await group.addItem({
+      itemID: tag,
+      active: true,
+    });
 
-    const [statusCode] = await session.write([nodeToWrite]);
-
-    if (statusCode !== StatusCodes.Good) {
-      throw new Error(`Write failed with status: ${statusCode}`);
-    }
+    await item.write(value);
+    await item.remove();
 
     res.json({ success: true, message: "Tag written successfully" });
   } catch (error) {
@@ -111,28 +99,32 @@ export const getBatchTagValues = async (req, res) => {
       return res.status(400).json({ error: "Tags must be an array" });
     }
 
-    const session = getSession();
-    if (!session) {
-      await initializeOPCUA();
+    const group = getGroup();
+    if (!group) {
+      await initializeOPCDA();
     }
 
-    const nodesToRead = tags.map((tagName) => {
-      const tag = config.tags.read[tagName] || config.tags.write[tagName];
-      if (!tag) {
-        throw new Error(`Tag not found: ${tagName}`);
-      }
-      return {
-        nodeId: getNodeId(tag),
-        attributeId: AttributeIds.Value,
-      };
-    });
+    const items = await Promise.all(
+      tags.map(async (tagName) => {
+        const tag = config.tags.read[tagName] || config.tags.write[tagName];
+        if (!tag) {
+          throw new Error(`Tag not found: ${tagName}`);
+        }
+        return group.addItem({
+          itemID: tag,
+          active: true,
+        });
+      })
+    );
 
-    const dataValues = await session.read(nodesToRead);
+    const values = await group.readMultiple(items);
+    await Promise.all(items.map((item) => item.remove()));
 
     const results = tags.reduce((acc, tagName, index) => {
       acc[tagName] = {
-        value: dataValues[index].value.value,
-        timestamp: dataValues[index].sourceTimestamp,
+        value: values[index].value,
+        timestamp: values[index].timestamp,
+        quality: values[index].quality,
       };
       return acc;
     }, {});
@@ -156,37 +148,27 @@ export const writeBatchTags = async (req, res) => {
         .json({ error: "Tags must be an object mapping tagNames to values" });
     }
 
-    const session = getSession();
-    if (!session) {
-      await initializeOPCUA();
+    const group = getGroup();
+    if (!group) {
+      await initializeOPCDA();
     }
 
-    const nodesToWrite = Object.entries(tags).map(([tagName, value]) => {
-      const tag = config.tags.write[tagName];
-      if (!tag) {
-        throw new Error(`Tag not found or not writable: ${tagName}`);
-      }
-      return {
-        nodeId: getNodeId(tag),
-        attributeId: AttributeIds.Value,
-        value: {
-          value: {
-            dataType: getDataType(tagName),
-            value: value,
-          },
-        },
-      };
-    });
+    const items = await Promise.all(
+      Object.entries(tags).map(async ([tagName, value]) => {
+        const tag = config.tags.write[tagName];
+        if (!tag) {
+          throw new Error(`Tag not found or not writable: ${tagName}`);
+        }
+        const item = await group.addItem({
+          itemID: tag,
+          active: true,
+        });
+        return { item, value };
+      })
+    );
 
-    const statusCodes = await session.write(nodesToWrite);
-
-    const failedWrites = statusCodes
-      .map((code, index) => ({ code, tagName: Object.keys(tags)[index] }))
-      .filter(({ code }) => code !== StatusCodes.Good);
-
-    if (failedWrites.length > 0) {
-      throw new Error(`Failed to write tags: ${JSON.stringify(failedWrites)}`);
-    }
+    await Promise.all(items.map(({ item, value }) => item.write(value)));
+    await Promise.all(items.map(({ item }) => item.remove()));
 
     res.json({ success: true, message: "Tags written successfully" });
   } catch (error) {
@@ -199,10 +181,11 @@ export const writeBatchTags = async (req, res) => {
 // Get connection status
 export const getConnectionStatus = async (req, res) => {
   try {
+    const server = getServer();
     const status = {
       connected: isConnected(),
-      topic: config.topic,
-      sessionId: getSession()?.sessionId.toString() || null,
+      serverName: server?.name || null,
+      groupName: getGroup()?.name || null,
     };
 
     res.json(status);
@@ -217,7 +200,7 @@ export const getConnectionStatus = async (req, res) => {
 export const reconnectRSLinx = async (req, res) => {
   try {
     await disconnect();
-    const success = await initializeOPCUA();
+    const success = await initializeOPCDA();
 
     if (success) {
       res.json({ success: true, message: "Reconnected successfully" });
@@ -241,21 +224,22 @@ export const validateTagConnection = async (req, res) => {
       return res.status(404).json({ error: "Tag not found" });
     }
 
-    const session = getSession();
-    if (!session) {
-      await initializeOPCUA();
+    const group = getGroup();
+    if (!group) {
+      await initializeOPCDA();
     }
 
-    const nodeToRead = {
-      nodeId: getNodeId(tag),
-      attributeId: AttributeIds.Value,
-    };
+    const item = await group.addItem({
+      itemID: tag,
+      active: true,
+    });
 
-    const [dataValue] = await session.read([nodeToRead]);
+    const value = await item.read();
+    await item.remove();
 
     res.json({
-      valid: dataValue.statusCode === StatusCodes.Good,
-      statusCode: dataValue.statusCode.toString(),
+      valid: value.quality === "GOOD",
+      quality: value.quality,
       readable: true,
     });
   } catch (error) {
@@ -264,26 +248,3 @@ export const validateTagConnection = async (req, res) => {
       .json({ error: "Failed to validate tag", details: error.message });
   }
 };
-
-// Get active subscriptions
-export const getSubscriptions = async (req, res) => {
-  try {
-    const subscriptions = getActiveSubscriptions();
-    res.json(subscriptions);
-  } catch (error) {
-    res.status(500).json({
-      error: "Failed to get subscriptions",
-      details: error.message,
-    });
-  }
-};
-
-// Helper functions
-function getNodeId(tag) {
-  return `ns=${config.namespace.index};s=${tag}`;
-}
-
-function getDataType(tagName) {
-  const typeString = config.dataTypes[tagName];
-  return DataType[typeString];
-}

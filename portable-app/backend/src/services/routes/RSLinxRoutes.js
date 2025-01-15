@@ -8,7 +8,6 @@ import {
   reconnectRSLinx,
   getBatchTagValues,
   validateTagConnection,
-  getSubscriptions,
 } from "../controllers/RSLinxController.js";
 
 const router = express.Router();
@@ -19,15 +18,46 @@ router.get("/tags/:tagName", getTagValue);
 router.post("/tags/:tagName", writeTagValue);
 
 // Batch Operations
-router.post("/tags/batch/read", getBatchTagValues);
-router.post("/tags/batch/write", writeBatchTags);
+router.post("/batch/read", getBatchTagValues);
+router.post("/batch/write", writeBatchTags);
 
 // Connection Management
 router.get("/status", getConnectionStatus);
 router.post("/reconnect", reconnectRSLinx);
-router.post("/validate/:tagName", validateTagConnection);
+router.get("/validate/:tagName", validateTagConnection);
 
-// Subscription Management
-router.get("/subscriptions", getSubscriptions);
+// Optional Simulator Routes (if using the simulator)
+if (process.env.NODE_ENV === "development") {
+  router.post("/simulator/start", (req, res) => {
+    // Import simulator dynamically only in development
+    import("../tests/PLCSimulator.js").then(({ default: PLCSimulator }) => {
+      const simulator = new PLCSimulator();
+      simulator
+        .start()
+        .then(() => res.json({ success: true, message: "Simulator started" }))
+        .catch((error) => res.status(500).json({ error: error.message }));
+    });
+  });
+
+  router.post("/simulator/stop", (req, res) => {
+    // Import simulator dynamically only in development
+    import("../tests/PLCSimulator.js").then(({ default: PLCSimulator }) => {
+      const simulator = new PLCSimulator();
+      simulator
+        .stop()
+        .then(() => res.json({ success: true, message: "Simulator stopped" }))
+        .catch((error) => res.status(500).json({ error: error.message }));
+    });
+  });
+
+  router.get("/simulator/status", (req, res) => {
+    // Import simulator dynamically only in development
+    import("../tests/PLCSimulator.js").then(({ default: PLCSimulator }) => {
+      const simulator = new PLCSimulator();
+      const status = simulator.getStatus();
+      res.json(status);
+    });
+  });
+}
 
 export default router;
