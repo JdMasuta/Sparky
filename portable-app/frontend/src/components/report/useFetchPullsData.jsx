@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { debounce as createDebounce } from "lodash";
 
 const FetchPullsData = ({ setTodaysPulls, setWeeksPulls }) => {
   const fetchDataRef = useRef();
@@ -16,7 +17,7 @@ const FetchPullsData = ({ setTodaysPulls, setWeeksPulls }) => {
         .replace("T", " ");
 
       const [todaysData, weeksData] = await Promise.all([
-        fetch("/api/checkout_afterTime", {
+        fetch("/api/checkouts/detailed/after", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -24,7 +25,7 @@ const FetchPullsData = ({ setTodaysPulls, setWeeksPulls }) => {
           body: JSON.stringify({ timestamp: midnightToday }),
           signal,
         }).then((res) => res.json()),
-        fetch("/api/checkout_afterTime", {
+        fetch("/api/checkouts/detailed/after", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -34,6 +35,7 @@ const FetchPullsData = ({ setTodaysPulls, setWeeksPulls }) => {
         }).then((res) => res.json()),
       ]);
 
+      console.log(todaysData);
       setTodaysPulls(todaysData.length);
       setWeeksPulls(weeksData.length);
     }, 1000);

@@ -6,7 +6,7 @@ const CablePullsTable = ({ initialData }) => {
 
   useEffect(() => {
     console.log("Initial data:", initialData);
-    setData(initialData); // Update state when initialData changes
+    setData(initialData);
   }, [initialData]);
 
   useEffect(() => {
@@ -42,11 +42,11 @@ const CablePullsTable = ({ initialData }) => {
         </thead>
         <tbody>
           {data.map((entry, index) => (
-            <tr key={index}>
+            <tr key={entry.checkout_id}>
               <td>{entry.timestamp}</td>
-              <td>{entry.user}</td>
-              <td>{entry.project}</td>
-              <td>{entry.item}</td>
+              <td>{entry.user.name}</td>
+              <td>{entry.project.mo_num}</td>
+              <td>{entry.item.sku}</td>
               <td>{entry.quantity}</td>
             </tr>
           ))}

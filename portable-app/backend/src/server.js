@@ -11,11 +11,8 @@ import {
   securityConfig,
 } from "./services/config/server.config.js";
 import cableDataRoutes from "./services/routes/cableDataRoutes.js";
+import RSLinxRoutes from "./services/routes/RSLinxRoutes.js";
 import errorHandler from "./services/middleware/errorHandler.js";
-
-// Get the directory path for ES modules
-const currentFilePath = fileURLToPath(import.meta.url);
-const currentDirPath = dirname(currentFilePath);
 
 const app = express();
 
@@ -40,6 +37,7 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/api", cableDataRoutes);
+app.use("/api/rslinx", RSLinxRoutes);
 
 // Serve static files from the frontend/dist directory
 // app.use(express.static(join(currentDirPath, "../../frontend/dist")));

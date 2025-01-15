@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 export const useCheckoutData = () => {
   const [initialData, setInitialData] = useState([]);
   const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -10,8 +11,8 @@ export const useCheckoutData = () => {
 
     const fetchData = async () => {
       try {
-        // Fetch initial checkouts
-        const response = await fetch("/api/checkouts/10", {
+        setIsLoading(true);
+        const response = await fetch("/api/checkouts/detailed/10", {
           headers: {
             Accept: "application/json",
             "Content-Type": "application/json",
@@ -29,59 +30,11 @@ export const useCheckoutData = () => {
           throw new Error("Expected array of checkouts");
         }
 
-        // Create Sets for unique IDs
-        const uniqueItemIds = [...new Set(data.map((entry) => entry.item_id))];
-        const uniqueProjectIds = [
-          ...new Set(data.map((entry) => entry.project_id)),
-        ];
-        const uniqueUserIds = [...new Set(data.map((entry) => entry.user_id))];
-
-        // Batch fetch all data
-        const [itemNames, projectNames, userNames] = await Promise.all([
-          Promise.all(
-            uniqueItemIds.map((id) =>
-              fetch(`/api/item/${id}`, { signal: controller.signal }).then(
-                (res) => res.json()
-              )
-            )
-          ),
-          Promise.all(
-            uniqueProjectIds.map((id) =>
-              fetch(`/api/project/${id}`, { signal: controller.signal }).then(
-                (res) => res.json()
-              )
-            )
-          ),
-          Promise.all(
-            uniqueUserIds.map((id) =>
-              fetch(`/api/user/${id}`, { signal: controller.signal }).then(
-                (res) => res.json()
-              )
-            )
-          ),
-        ]);
-
-        // Create lookup maps
-        const itemMap = new Map(
-          itemNames.map((item, i) => [uniqueItemIds[i], item.name])
-        );
-        const projectMap = new Map(
-          projectNames.map((project, i) => [
-            uniqueProjectIds[i],
-            project.mo_num,
-          ])
-        );
-        const userMap = new Map(
-          userNames.map((user, i) => [uniqueUserIds[i], user.name])
-        );
-
         if (!isActive) return; // Don't update state if component unmounted
 
+        // Format timestamps
         const formattedData = data.map((entry) => ({
           ...entry,
-          item: itemMap.get(entry.item_id),
-          project: projectMap.get(entry.project_id),
-          user: userMap.get(entry.user_id),
           timestamp: new Date(entry.timestamp)
             .toLocaleString("sv-SE", {
               year: "numeric",
@@ -103,6 +56,10 @@ export const useCheckoutData = () => {
           console.error("Error fetching data:", error);
           setError(error.message);
         }
+      } finally {
+        if (isActive) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -114,24 +71,22 @@ export const useCheckoutData = () => {
     };
   }, []);
 
-  return { initialData, error };
+  // We can now include isLoading in the return object
+  return { initialData, error, isLoading };
 };
 
-// Custom debounce function
-function createDebounce(func, wait) {
+// Keeping the createDebounce utility in case it's needed elsewhere
+export const createDebounce = (func, wait) => {
   let timeout;
   let controller;
 
   const debounced = (...args) => {
-    // Cancel previous request if it exists
     if (controller) {
       controller.abort();
     }
 
-    // Create new controller for this request
     controller = new AbortController();
 
-    // Clear previous timeout
     if (timeout) {
       clearTimeout(timeout);
     }
@@ -160,4 +115,4 @@ function createDebounce(func, wait) {
   };
 
   return debounced;
-}
+};

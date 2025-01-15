@@ -11,6 +11,10 @@ import {
   generateCheckoutReport,
   getTableData,
   deleteInvalidCheckouts,
+  // New optimized methods
+  getLatestCheckoutsWithDetails,
+  getCheckoutStats,
+  getCheckoutsAfterTimestampWithDetails,
 } from "../controllers/databaseController.js";
 
 const router = express.Router();
@@ -25,7 +29,7 @@ router.post("/checkout_report", generateCheckoutReport);
 router.get("/checkout_id/", getCheckoutById);
 
 // Route: Get the latest 'n' checkouts
-router.get("/checkouts/:n", getLatestCheckouts);
+router.get("/checkouts/simple/:n", getLatestCheckouts);
 
 // Route: Get user by user_id
 router.get("/user/:id", getUserById);
@@ -47,5 +51,16 @@ router.post("/project", createProject);
 
 // Route: Delete all invalid checkouts
 router.delete("/purge", deleteInvalidCheckouts);
+
+// New optimized routes
+
+// Route: Get the latest 'n' checkouts with detailed information
+router.get("/checkouts/detailed/:n", getLatestCheckoutsWithDetails);
+
+// Route: Get checkout statistics
+router.get("/checkouts/stats", getCheckoutStats);
+
+// Route: Get all checkouts on or after a given timestamp with detailed information
+router.post("/checkouts/detailed/after", getCheckoutsAfterTimestampWithDetails);
 
 export default router;

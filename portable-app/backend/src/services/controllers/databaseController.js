@@ -309,3 +309,166 @@ export const deleteInvalidCheckouts = (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 };
+
+// Method: Get latest checkouts with all related data
+export const getLatestCheckoutsWithDetails = (req, res) => {
+  const { n } = req.params;
+
+  if (!n || isNaN(n)) {
+    return res
+      .status(400)
+      .send("Path parameter n is required and must be a number");
+  }
+
+  try {
+    const db = getDatabase();
+    const rows = db
+      .prepare(
+        `
+      SELECT 
+        c.checkout_id,
+        c.quantity,
+        strftime('%Y-%m-%d %H:%M:%S', c.timestamp) as timestamp,
+        u.user_id,
+        u.name as user_name,
+        p.project_id,
+        p.project_number as mo_num,
+        i.item_id,
+        i.name as item_name,
+        i.sku as item_sku
+      FROM checkouts c
+      JOIN users u ON c.user_id = u.user_id
+      JOIN projects p ON c.project_id = p.project_id
+      JOIN items i ON c.item_id = i.item_id
+      ORDER BY c.timestamp DESC 
+      LIMIT ?
+    `
+      )
+      .all(parseInt(n));
+
+    const formattedRows = rows.map((row) => ({
+      checkout_id: row.checkout_id,
+      quantity: row.quantity,
+      timestamp: row.timestamp,
+      user: {
+        id: row.user_id,
+        name: row.user_name,
+      },
+      project: {
+        id: row.project_id,
+        mo_num: row.mo_num,
+      },
+      item: {
+        id: row.item_id,
+        name: row.item_name,
+        sku: row.item_sku,
+      },
+    }));
+
+    res.status(200).json(formattedRows);
+  } catch (error) {
+    console.error("Error fetching checkouts with details:", error);
+    res.status(500).send("Internal Server Error");
+  }
+};
+
+// Method: Get checkout statistics (today and week counts)
+export const getCheckoutStats = (req, res) => {
+  console.log("Getting checkout stats");
+  try {
+    const db = getDatabase();
+
+    // Get today's start timestamp
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayTimestamp = today.toISOString().slice(0, 19).replace("T", " ");
+
+    // Get week ago timestamp
+    const weekAgo = new Date(today);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const weekAgoTimestamp = weekAgo
+      .toISOString()
+      .slice(0, 19)
+      .replace("T", " ");
+
+    // Single query to get both counts
+    const stats = db
+      .prepare(
+        `
+      SELECT 
+        SUM(CASE WHEN timestamp >= ? THEN 1 ELSE 0 END) as today_count,
+        SUM(CASE WHEN timestamp >= ? THEN 1 ELSE 0 END) as week_count
+      FROM checkouts
+    `
+      )
+      .get(todayTimestamp, weekAgoTimestamp);
+
+    res.status(200).json({
+      today_count: stats.today_count || 0,
+      week_count: stats.week_count || 0,
+    });
+  } catch (error) {
+    console.error("Error fetching checkout stats:", error);
+    res.status(500).send("Internal Server Error");
+  }
+};
+
+// Method: Get checkouts after timestamp with details
+export const getCheckoutsAfterTimestampWithDetails = (req, res) => {
+  const { timestamp } = req.body;
+
+  if (!timestamp) {
+    return res.status(400).send("Timestamp parameter is required");
+  }
+
+  try {
+    const db = getDatabase();
+    const rows = db
+      .prepare(
+        `
+      SELECT 
+        c.checkout_id,
+        c.quantity,
+        strftime('%Y-%m-%d %H:%M:%S', c.timestamp) as timestamp,
+        u.user_id,
+        u.name as user_name,
+        p.project_id,
+        p.project_number as mo_num,
+        i.item_id,
+        i.name as item_name,
+        i.sku as item_sku
+      FROM checkouts c
+      JOIN users u ON c.user_id = u.user_id
+      JOIN projects p ON c.project_id = p.project_id
+      JOIN items i ON c.item_id = i.item_id
+      WHERE c.timestamp >= ?
+      ORDER BY c.timestamp DESC
+    `
+      )
+      .all(timestamp);
+
+    const formattedRows = rows.map((row) => ({
+      checkout_id: row.checkout_id,
+      quantity: row.quantity,
+      timestamp: row.timestamp,
+      user: {
+        id: row.user_id,
+        name: row.user_name,
+      },
+      project: {
+        id: row.project_id,
+        mo_num: row.mo_num,
+      },
+      item: {
+        id: row.item_id,
+        name: row.item_name,
+        sku: row.item_sku,
+      },
+    }));
+
+    res.status(200).json(formattedRows);
+  } catch (error) {
+    console.error("Error fetching checkouts with details:", error);
+    res.status(500).send("Internal Server Error");
+  }
+};
