@@ -1,19 +1,18 @@
 import express from "express";
 import {
-  getTags,
+  runDiagnostics,
   getTagValue,
   writeTagValue,
+  getBatchTagValues,
   writeBatchTags,
   getConnectionStatus,
   reconnectRSLinx,
-  getBatchTagValues,
   validateTagConnection,
-} from "../controllers/RSLinxController.js";
+} from "../controllers/RSLinxController.js"; // DDE controller functions
 
 const router = express.Router();
 
 // Basic Tag Operations
-router.get("/tags", getTags);
 router.get("/tags/:tagName", getTagValue);
 router.post("/tags/:tagName", writeTagValue);
 
@@ -26,34 +25,40 @@ router.get("/status", getConnectionStatus);
 router.post("/reconnect", reconnectRSLinx);
 router.get("/validate/:tagName", validateTagConnection);
 
-// Optional Simulator Routes (if using the simulator)
+// Diagnostics
+router.get("/diagnostics", runDiagnostics);
+
+// Development Routes
 if (process.env.NODE_ENV === "development") {
+  // DDE Simulator for Development
   router.post("/simulator/start", (req, res) => {
-    // Import simulator dynamically only in development
-    import("../tests/PLCSimulator.js").then(({ default: PLCSimulator }) => {
-      const simulator = new PLCSimulator();
+    // Import DDE simulator dynamically only in development
+    import("../tests/DDESimulator.js").then(({ default: DDESimulator }) => {
+      const simulator = new DDESimulator();
       simulator
         .start()
-        .then(() => res.json({ success: true, message: "Simulator started" }))
+        .then(() =>
+          res.json({ success: true, message: "DDE Simulator started" })
+        )
         .catch((error) => res.status(500).json({ error: error.message }));
     });
   });
 
   router.post("/simulator/stop", (req, res) => {
-    // Import simulator dynamically only in development
-    import("../tests/PLCSimulator.js").then(({ default: PLCSimulator }) => {
-      const simulator = new PLCSimulator();
+    import("../tests/DDESimulator.js").then(({ default: DDESimulator }) => {
+      const simulator = new DDESimulator();
       simulator
         .stop()
-        .then(() => res.json({ success: true, message: "Simulator stopped" }))
+        .then(() =>
+          res.json({ success: true, message: "DDE Simulator stopped" })
+        )
         .catch((error) => res.status(500).json({ error: error.message }));
     });
   });
 
   router.get("/simulator/status", (req, res) => {
-    // Import simulator dynamically only in development
-    import("../tests/PLCSimulator.js").then(({ default: PLCSimulator }) => {
-      const simulator = new PLCSimulator();
+    import("../tests/DDESimulator.js").then(({ default: DDESimulator }) => {
+      const simulator = new DDESimulator();
       const status = simulator.getStatus();
       res.json(status);
     });

@@ -12,7 +12,7 @@ try {
       filename: path.join(serverConfig.paths.database, "dev.sqlite"),
       maxConnections: 10,
       timeout: 5000,
-      verbose: true,
+      verbose: false,
     };
   }
   console.log("Loaded config:", config);
