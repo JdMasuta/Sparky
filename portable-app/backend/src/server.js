@@ -3,8 +3,6 @@ import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import { promises as fs } from "fs";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
 import { initializeDatabase, closeDatabase } from "./init/db.init.js";
 import {
   serverConfig,
@@ -12,6 +10,7 @@ import {
 } from "./services/config/server.config.js";
 import cableDataRoutes from "./services/routes/cableDataRoutes.js";
 import RSLinxRoutes from "./services/routes/RSLinxRoutes.js";
+import emailRoutes from "./services/routes/emailRoutes.js";
 import errorHandler from "./services/middleware/errorHandler.js";
 
 const app = express();
@@ -38,6 +37,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/api", cableDataRoutes);
 app.use("/api/rslinx", RSLinxRoutes);
+app.use("/api/email", emailRoutes);
 
 // Serve static files from the frontend/dist directory
 // app.use(express.static(join(currentDirPath, "../../frontend/dist")));

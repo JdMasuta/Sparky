@@ -33,6 +33,11 @@ set OPCDA_RETRY_INTERVAL=5000
 set OPCDA_CACHE_ENABLED=true
 set OPCDA_CACHE_UPDATE_RATE=1000
 
+:: Email Configuration
+set EMAIL_USER=BWSparkyCart@gmail.com
+set EMAIL_PASS=arrf vmxt cmcs mokt :: App Specific Password
+set EMAIL_FROM=Sparky Cable Audit System
+
 :: Security Configuration
 set JWT_SECRET=your-secret-key
 set SESSION_TIMEOUT=3600000
