@@ -1,5 +1,7 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { ArrowUpDown } from "lucide-react";
+import { use } from "react";
+import { useEmailReport } from "./useEmailReport";
 
 const CheckoutReport = ({
   data = { timestamp: "", total_records: 0, data: [] },
@@ -7,6 +9,8 @@ const CheckoutReport = ({
   const [sortField, setSortField] = useState("project_number");
   const [sortDirection, setSortDirection] = useState("asc");
   const [selectedProject, setSelectedProject] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const { sendEmailReport } = useEmailReport({ timestamp: data.timestamp });
 
   // Calculate project totals and max quantity for scaling
   const projectStats = useMemo(() => {
@@ -65,6 +69,13 @@ const CheckoutReport = ({
       <div className="bg-white rounded-lg p-6 shadow-sm">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">Detailed Report</h2>
+          <button
+            onClick={sendEmailReport}
+            disabled={isLoading}
+            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400"
+          >
+            {isLoading ? "Sending..." : "Email CSV"}
+          </button>
           {selectedProject && (
             <button
               onClick={() => setSelectedProject(null)}
