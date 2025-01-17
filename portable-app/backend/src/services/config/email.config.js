@@ -5,12 +5,11 @@ const config = {
   development: {
     service: "gmail", // Using Gmail service instead of direct SMTP config
     auth: {
-      user: process.env.EMAIL_USER || "your-email@gmail.com",
-      pass: process.env.EMAIL_PASS || "your-app-specific-password",
+      user: "bwsparkycart@gmail.com",
+      pass: "arrf vmxt cmcs mokt",
     },
     defaults: {
-      from:
-        process.env.EMAIL_FROM || '"Cable Audit System" <your-email@gmail.com>',
+      from: process.env.EMAIL_FROM || '"Cable Audit System"',
     },
   },
 

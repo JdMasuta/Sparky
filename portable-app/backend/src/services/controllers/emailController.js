@@ -3,6 +3,7 @@ import { getDatabase } from "../../init/db.init.js";
 import nodemailer from "nodemailer";
 import { Parser } from "json2csv";
 import emailConfig from "../config/email.config.js";
+import config from "../config/rslinx.config.js";
 
 // Initialize the transporter outside of the request handlers but wrap it in a function
 // to prevent immediate connection attempts during module loading
@@ -17,9 +18,46 @@ const getTransporter = () => {
 // Create transporter with error handling
 const createTransporter = () => {
   try {
-    return nodemailer.createTransport(emailConfig);
+    // Log email configuration (excluding sensitive data in production)
+    console.log("Email Config:", {
+      host: emailConfig.host,
+      port: emailConfig.port,
+      auth: {
+        user: emailConfig.auth.user,
+        // Log partial password for debugging (last 4 chars)
+        pass: emailConfig.auth.pass
+          ? `...${emailConfig.auth.pass.slice(-4)}`
+          : "undefined",
+      },
+    });
+
+    const transport = nodemailer.createTransport(emailConfig);
+
+    // Verify the connection configuration
+    transport.verify(function (error, success) {
+      if (error) {
+        console.error("Transporter verification failed:", error);
+        console.log("Auth details - Username:", emailConfig.auth.user);
+        // Only log password in development
+        if (process.env.NODE_ENV !== "production") {
+          console.log("Auth details - Password:", emailConfig.auth.pass);
+        }
+      } else {
+        console.log("Server is ready to take our messages");
+      }
+    });
+
+    return transport;
   } catch (error) {
     console.error("Error creating mail transporter:", error);
+    // Log authentication details on error
+    console.error("Email authentication failed with credentials:", {
+      username: emailConfig.auth.user,
+      password:
+        process.env.NODE_ENV !== "production"
+          ? emailConfig.auth.pass
+          : "[REDACTED]",
+    });
     throw error;
   }
 };
@@ -98,7 +136,24 @@ export const sendCheckoutReport = async (req, res) => {
       ],
     };
 
-    await transporter.sendMail(mailOptions);
+    try {
+      await transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error("Failed to send email:", error);
+      console.log("Current email configuration:", {
+        host: emailConfig.host,
+        port: emailConfig.port,
+        secure: emailConfig.secure,
+        auth: {
+          user: emailConfig.auth.user,
+          pass:
+            process.env.NODE_ENV !== "production"
+              ? emailConfig.auth.pass
+              : "[REDACTED]",
+        },
+      });
+      throw error;
+    }
 
     res.status(200).json({
       message: "Report sent successfully",
@@ -140,6 +195,19 @@ export const testEmailConfig = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in testEmailConfig:", error);
+    // Add detailed error logging
+    console.error("Email configuration details:", {
+      host: emailConfig.host,
+      port: emailConfig.port,
+      secure: emailConfig.secure,
+      auth: {
+        user: emailConfig.auth.user,
+        pass:
+          process.env.NODE_ENV !== "production"
+            ? emailConfig.auth.pass
+            : "[REDACTED]",
+      },
+    });
     res.status(500).json({
       message: "Failed to send test email",
       error: error.message,
