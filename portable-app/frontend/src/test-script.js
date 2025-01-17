@@ -3,6 +3,18 @@ const RSLinxTester = {
   // Base URL for API calls
   baseUrl: "http://localhost:3000/api/rslinx",
 
+  // Tag Definitions - Using RSLinx DDE addressing format
+  tag: {
+    quantity: "Reel.RealData[0]",
+    completeRequest: "_200_GLB.BoolData[0].0",
+    ddeTest: "DDETest",
+    userName: "_200_GLB.StringData[0]",
+    moNumber: "_200_GLB.StringData[1]",
+    itemNumber: "_200_GLB.StringData[2]",
+    completeAck: "CompleteAck",
+    stepNumber: "_200_GLB.DintData[2]",
+  },
+
   // Helper method to handle API responses
   async handleApiResponse(response, actionName) {
     const contentType = response.headers.get("content-type");

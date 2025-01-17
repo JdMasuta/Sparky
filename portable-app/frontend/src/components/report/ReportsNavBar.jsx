@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import "../../assets/css/style.css";
 import CheckoutReport from "./CheckoutReportDashboard.jsx";
-import Modal from "./Modal.jsx";
+import Modal from "../shared/Modal.jsx";
 
 const NavBar = () => {
   const [date, setDate] = useState("");

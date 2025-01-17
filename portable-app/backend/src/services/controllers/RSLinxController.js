@@ -259,7 +259,7 @@ export const monitorQuantity = async (req, res) => {
   try {
     const {
       pollInterval = 500,
-      timeout = 300000,
+      timeout = 600000,
       quantityThreshold = 0,
       completeRequestExpected = "1",
     } = req.query;

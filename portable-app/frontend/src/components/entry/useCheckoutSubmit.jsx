@@ -43,23 +43,27 @@ export const useCheckoutSubmit = (formData, idMappings, setFormData) => {
         body: JSON.stringify(checkoutData),
       });
 
-      if (response.ok) {
-        setFormData({
-          name: "",
-          project: "",
-          item: "",
-          quantity: "",
-        });
-
-        alert("Checkout successful!");
-      } else {
-        console.error("Failed to submit checkout");
+      if (!response.ok) {
+        throw new Error("Failed to submit checkout");
       }
+
+      return true; // Return true on successful submission
     } catch (error) {
       console.error("Error submitting checkout:", error);
       alert("Failed to submit checkout. Please try again.");
+      return false;
     }
   };
 
-  return { handleSubmit };
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      project: "",
+      item: "",
+      quantity: "",
+    });
+    alert("Checkout successful!");
+  };
+
+  return { handleSubmit, resetForm };
 };
