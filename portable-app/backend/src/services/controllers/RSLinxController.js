@@ -268,16 +268,19 @@ export const monitorQuantity = async (req, res) => {
     const completeRequestTag = "_200_GLB.BoolData[0].0";
 
     const startTime = Date.now();
-    let lastQuantity = "0";
+    let quantity = null;
     let lastCompleteRequest = "0";
 
     // Keep polling until timeout or success
     while (Date.now() - startTime < Number(timeout)) {
-      const quantityResult = await ddeClient.readTag(quantityTag);
       const completeRequestResult = await ddeClient.readTag(completeRequestTag);
-
-      const quantity = quantityResult.value;
       const completeRequest = completeRequestResult.value;
+
+      // Only read quantity when completeRequest is "1"
+      if (completeRequest === "1") {
+        const quantityResult = await ddeClient.readTag(quantityTag);
+        quantity = quantityResult.value;
+      }
 
       // Check if conditions are met
       const numericQuantity = quantity !== null ? Number(quantity) : 0;
@@ -286,7 +289,7 @@ export const monitorQuantity = async (req, res) => {
       const thresholdCheck =
         numericThreshold === 0 || numericQuantity >= numericThreshold;
 
-      if (completeRequest === "1" && thresholdCheck) {
+      if (completeRequest === "1" && quantity !== null && thresholdCheck) {
         return res.json({
           success: true,
           finalQuantity: quantity,
@@ -296,8 +299,7 @@ export const monitorQuantity = async (req, res) => {
         });
       }
 
-      // Store last values for timeout case
-      lastQuantity = quantity;
+      // Store last completeRequest for timeout case
       lastCompleteRequest = completeRequest;
 
       // Wait for next poll interval
@@ -307,7 +309,7 @@ export const monitorQuantity = async (req, res) => {
     // If we get here, we hit the timeout
     res.json({
       success: false,
-      finalQuantity: lastQuantity,
+      finalQuantity: quantity || "0",
       finalCompleteRequest: lastCompleteRequest,
       timeElapsed: Date.now() - startTime,
       timestamp: new Date().toISOString(),
