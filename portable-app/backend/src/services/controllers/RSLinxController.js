@@ -264,7 +264,7 @@ export const monitorQuantity = async (req, res) => {
       completeRequestExpected = "1",
     } = req.query;
 
-    const quantityTag = "Reel.RealData[0]";
+    const quantityTag = "Reel.RealData[10]";
     const completeRequestTag = "_200_GLB.BoolData[0].0";
 
     const startTime = Date.now();
@@ -280,12 +280,13 @@ export const monitorQuantity = async (req, res) => {
       const completeRequest = completeRequestResult.value;
 
       // Check if conditions are met
-      const quantityOk =
-        Number(quantityThreshold) === 0 ||
-        (quantity !== null && Number(quantity) >= Number(quantityThreshold));
-      const completeRequestOk = completeRequest === completeRequestExpected;
+      const numericQuantity = quantity !== null ? Number(quantity) : 0;
+      const numericThreshold = Number(quantityThreshold);
 
-      if (quantityOk && completeRequestOk) {
+      const thresholdCheck =
+        numericThreshold === 0 || numericQuantity >= numericThreshold;
+
+      if (completeRequest === "1" && thresholdCheck) {
         return res.json({
           success: true,
           finalQuantity: quantity,
