@@ -1,5 +1,5 @@
 // src/config/email.config.js
-const env = process.env.NODE_ENV || "development";
+const env = "development";
 
 const config = {
   development: {
