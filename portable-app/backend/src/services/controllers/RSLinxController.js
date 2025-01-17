@@ -1,4 +1,4 @@
-import config from "../config/rslinx.config.js";
+// simplifiedRSLinxController.js
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -6,23 +6,12 @@ import { dirname, join } from "node:path";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// DDE Manager class for handling Python bridge communication
-class DDEManager {
+class DDEClient {
   constructor() {
     this.pythonScript = join(__dirname, "dde_manager.py");
-    this._connected = false;
   }
 
-  formatDDELink(tagConfig) {
-    return `[${config.topic}]${tagConfig.item},${tagConfig.row},${tagConfig.column}`;
-  }
-
-  async _executePythonCommand(command) {
-    // If command contains a tag, format it as DDE link
-    if (command.tag && typeof command.tag === "object") {
-      command.tag = this.formatDDELink(command.tag);
-    }
-
+  async executeDDECommand(command) {
     return new Promise((resolve, reject) => {
       const python = spawn("python", [
         this.pythonScript,
@@ -42,11 +31,7 @@ class DDEManager {
       python.on("close", (code) => {
         try {
           const result = JSON.parse(dataString);
-          if (result.error) {
-            reject(new Error(result.error));
-          } else {
-            resolve(result);
-          }
+          resolve(result);
         } catch (e) {
           reject(new Error("Failed to parse Python output"));
         }
@@ -54,162 +39,71 @@ class DDEManager {
     });
   }
 
-  async initialize() {
-    const result = await this._executePythonCommand({
-      action: "init",
-      application: config.application,
-      topic: config.topic,
-    });
-    this._connected = result.success;
-    return result;
+  async readTag(tag) {
+    const command = {
+      action: "read",
+      application: "RSLinx",
+      topic: "ExcelLink",
+      item: tag,
+    };
+    return this.executeDDECommand(command);
   }
 
-  async disconnect() {
-    const result = await this._executePythonCommand({ action: "disconnect" });
-    this._connected = false;
-    return result;
+  async writeTag(tag, value) {
+    const command = {
+      action: "write",
+      application: "RSLinx",
+      topic: "ExcelLink",
+      item: tag,
+      value: value,
+    };
+    return this.executeDDECommand(command);
   }
 
-  isConnected() {
-    return this._connected;
+  async checkConnection() {
+    const command = {
+      action: "check",
+      application: "RSLinx",
+      topic: "ExcelLink",
+    };
+    return this.executeDDECommand(command);
   }
 }
 
 // Create singleton instance
-const ddeManager = new DDEManager();
+const ddeClient = new DDEClient();
 
-// Run diagnostic script
-export const runDiagnostics = async (req, res) => {
-  try {
-    const diagnosticResults = {
-      configuration: {
-        server: config.application,
-        topic: config.topic,
-        connectionType: "DDE",
-      },
-      connection: {
-        status: false,
-        error: null,
-      },
-    };
-
-    try {
-      const result = await ddeManager.initialize();
-
-      diagnosticResults.connection.status = result.success;
-      if (!result.success) {
-        diagnosticResults.connection.error = result.message;
-      }
-
-      // Test tag reading if configured
-      if (config.tags.read.ddeTest) {
-        const testResult = await ddeManager._executePythonCommand({
-          action: "read",
-          tag: config.tags.read.ddeTest,
-        });
-
-        diagnosticResults.tagTest = {
-          status: !testResult.error,
-          value: testResult.value,
-          error: testResult.error,
-          timestamp: new Date().toISOString(),
-        };
-      }
-
-      await ddeManager.disconnect();
-    } catch (connError) {
-      diagnosticResults.connection.error = connError.message;
-    }
-
-    res.json(diagnosticResults);
-  } catch (error) {
-    console.error("Diagnostic error:", error);
-    res.status(500).json({
-      error: "Diagnostic test failed",
-      details: error.message,
-    });
-  }
-};
-
-// Get all configured tags
-export const getTags = async (req, res) => {
-  try {
-    const allTags = {
-      read: config.tags.read,
-      write: config.tags.write,
-    };
-    res.json(allTags);
-  } catch (error) {
-    res.status(500).json({
-      error: "Failed to get tags",
-      details: error.message,
-    });
-  }
-};
-
-// Get value for specific tag
+// Controller methods
 export const getTagValue = async (req, res) => {
   try {
     const { tagName } = req.params;
-    const tag = config.tags.read[tagName] || config.tags.write[tagName];
-
-    if (!tag) {
-      return res.status(404).json({ error: "Tag not found" });
-    }
-
-    const result = await ddeManager._executePythonCommand({
-      action: "read",
-      tag: tag,
-    });
-
-    if (result.error) {
-      throw new Error(result.error);
-    }
-
+    const result = await ddeClient.readTag(tagName);
     res.json({
-      tagName,
-      value: result.value,
+      tag: tagName,
+      ...result,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    res.status(500).json({
-      error: "Failed to read tag",
-      details: error.message,
-    });
+    res.status(500).json({ error: error.message });
   }
 };
 
-// Write value to specific tag
 export const writeTagValue = async (req, res) => {
   try {
     const { tagName } = req.params;
     const { value } = req.body;
-    const tag = config.tags.write[tagName];
 
-    if (!tag) {
-      return res.status(404).json({ error: "Tag not found or not writable" });
+    if (value === undefined) {
+      return res.status(400).json({ error: "Value is required" });
     }
 
-    const result = await ddeManager._executePythonCommand({
-      action: "write",
-      tag: tag,
-      value: value,
-    });
-
-    if (!result.success) {
-      throw new Error(result.error);
-    }
-
-    res.json({ success: true, message: "Tag written successfully" });
+    const result = await ddeClient.writeTag(tagName, value);
+    res.json(result);
   } catch (error) {
-    res.status(500).json({
-      error: "Failed to write tag",
-      details: error.message,
-    });
+    res.status(500).json({ error: error.message });
   }
 };
 
-// Get multiple tag values
 export const getBatchTagValues = async (req, res) => {
   try {
     const { tags } = req.body;
@@ -219,137 +113,205 @@ export const getBatchTagValues = async (req, res) => {
     }
 
     const results = {};
-    for (const tagName of tags) {
-      const tag = config.tags.read[tagName] || config.tags.write[tagName];
-      if (!tag) {
-        results[tagName] = { error: "Tag not found" };
-        continue;
-      }
-
-      const result = await ddeManager._executePythonCommand({
-        action: "read",
-        tag: tag,
-      });
-
-      results[tagName] = {
-        value: result.value,
-        error: result.error,
-        timestamp: new Date().toISOString(),
-      };
+    for (const tag of tags) {
+      results[tag] = await ddeClient.readTag(tag);
     }
 
-    res.json(results);
-  } catch (error) {
-    res.status(500).json({
-      error: "Failed to read tags",
-      details: error.message,
+    res.json({
+      results,
+      timestamp: new Date().toISOString(),
     });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };
 
-// Write multiple tag values
 export const writeBatchTags = async (req, res) => {
   try {
     const { tags } = req.body;
 
     if (!tags || typeof tags !== "object") {
-      return res.status(400).json({
-        error: "Tags must be an object mapping tagNames to values",
-      });
+      return res
+        .status(400)
+        .json({ error: "Tags must be an object mapping tagNames to values" });
     }
 
     const results = {};
     for (const [tagName, value] of Object.entries(tags)) {
-      const tag = config.tags.write[tagName];
-      if (!tag) {
-        results[tagName] = { error: "Tag not found or not writable" };
-        continue;
-      }
-
-      const result = await ddeManager._executePythonCommand({
-        action: "write",
-        tag: tag,
-        value: value,
-      });
-
-      results[tagName] = {
-        success: result.success,
-        error: result.error,
-      };
+      results[tagName] = await ddeClient.writeTag(tagName, value);
     }
 
-    res.json(results);
-  } catch (error) {
-    res.status(500).json({
-      error: "Failed to write tags",
-      details: error.message,
+    res.json({
+      results,
+      timestamp: new Date().toISOString(),
     });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };
 
-// Get connection status
 export const getConnectionStatus = async (req, res) => {
   try {
-    const status = {
-      connected: ddeManager.isConnected(),
-      server: config.application,
-      topic: config.topic,
-    };
-
+    const status = await ddeClient.checkConnection();
     res.json(status);
   } catch (error) {
-    res.status(500).json({
-      error: "Failed to get status",
-      details: error.message,
-    });
+    res.status(500).json({ error: error.message });
   }
 };
 
-// Reconnect to RSLinx
 export const reconnectRSLinx = async (req, res) => {
   try {
-    await ddeManager.disconnect();
-    const result = await ddeManager.initialize();
-
-    if (result.success) {
-      res.json({ success: true, message: "Reconnected successfully" });
-    } else {
-      res.status(500).json({
-        error: "Failed to reconnect",
-        message: result.message,
-      });
-    }
+    const status = await ddeClient.checkConnection();
+    res.json(status);
   } catch (error) {
-    res.status(500).json({
-      error: "Failed to reconnect",
-      details: error.message,
-    });
+    res.status(500).json({ error: error.message });
   }
 };
 
-// Validate tag connection
 export const validateTagConnection = async (req, res) => {
   try {
     const { tagName } = req.params;
-    const tag = config.tags.read[tagName] || config.tags.write[tagName];
-
-    if (!tag) {
-      return res.status(404).json({ error: "Tag not found" });
-    }
-
-    const result = await ddeManager._executePythonCommand({
-      action: "validate",
-      tag: tag,
-    });
-
+    const result = await ddeClient.readTag(tagName);
     res.json({
-      valid: result.valid,
+      valid: !result.error,
       error: result.error,
     });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const runDiagnostics = async (req, res) => {
+  try {
+    const connectionStatus = await ddeClient.checkConnection();
+
+    const diagnosticResults = {
+      configuration: {
+        server: "RSLinx",
+        topic: "ExcelLink",
+        connectionType: "DDE",
+      },
+      connection: {
+        status: connectionStatus.available,
+        error: connectionStatus.available ? null : connectionStatus.message,
+      },
+      timestamp: new Date().toISOString(),
+    };
+
+    res.json(diagnosticResults);
+  } catch (error) {
     res.status(500).json({
-      error: "Failed to validate tag",
+      error: "Diagnostic test failed",
       details: error.message,
     });
+  }
+};
+
+export const writeSequence = async (req, res) => {
+  try {
+    const { name, moNumber, itemNumber } = req.body;
+
+    if (!name || !moNumber || !itemNumber) {
+      return res.status(400).json({
+        error: "name, moNumber, and itemNumber are all required",
+      });
+    }
+
+    // Define tags
+    const userName = "_200_GLB.StringData[0]";
+    const moNumberTag = "_200_GLB.StringData[1]";
+    const itemNumberTag = "_200_GLB.StringData[2]";
+    const completeAck = "CompleteAck";
+    const stepNumber = "_200_GLB.DintData[2]";
+
+    let currentStep = 1;
+
+    // Step 1: Write userName
+    await ddeClient.writeTag(userName, name);
+    await ddeClient.writeTag(stepNumber, currentStep++);
+
+    // Step 2: Write moNumber
+    await ddeClient.writeTag(moNumberTag, moNumber);
+    await ddeClient.writeTag(stepNumber, currentStep++);
+
+    // Step 3: Write itemNumber
+    await ddeClient.writeTag(itemNumberTag, itemNumber);
+    await ddeClient.writeTag(stepNumber, currentStep++);
+
+    // Step 4: Write completeAck
+    await ddeClient.writeTag(completeAck, true);
+    await ddeClient.writeTag(stepNumber, currentStep);
+
+    res.json({
+      success: true,
+      message: "Sequential write completed successfully",
+      finalStep: currentStep,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+export const monitorQuantity = async (req, res) => {
+  try {
+    const {
+      pollInterval = 500,
+      timeout = 300000,
+      quantityThreshold = 0,
+      completeRequestExpected = "1",
+    } = req.query;
+
+    const quantityTag = "Reel.RealData[0]";
+    const completeRequestTag = "_200_GLB.BoolData[0].0";
+
+    const startTime = Date.now();
+    let lastQuantity = "0";
+    let lastCompleteRequest = "0";
+
+    // Keep polling until timeout or success
+    while (Date.now() - startTime < Number(timeout)) {
+      const quantityResult = await ddeClient.readTag(quantityTag);
+      const completeRequestResult = await ddeClient.readTag(completeRequestTag);
+
+      const quantity = quantityResult.value;
+      const completeRequest = completeRequestResult.value;
+
+      // Check if conditions are met
+      const quantityOk =
+        Number(quantityThreshold) === 0 ||
+        (quantity !== null && Number(quantity) >= Number(quantityThreshold));
+      const completeRequestOk = completeRequest === completeRequestExpected;
+
+      if (quantityOk && completeRequestOk) {
+        return res.json({
+          success: true,
+          finalQuantity: quantity,
+          finalCompleteRequest: completeRequest,
+          timeElapsed: Date.now() - startTime,
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      // Store last values for timeout case
+      lastQuantity = quantity;
+      lastCompleteRequest = completeRequest;
+
+      // Wait for next poll interval
+      await new Promise((resolve) => setTimeout(resolve, Number(pollInterval)));
+    }
+
+    // If we get here, we hit the timeout
+    res.json({
+      success: false,
+      finalQuantity: lastQuantity,
+      finalCompleteRequest: lastCompleteRequest,
+      timeElapsed: Date.now() - startTime,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };

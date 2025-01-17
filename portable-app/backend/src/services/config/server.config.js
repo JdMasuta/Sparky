@@ -9,7 +9,9 @@ const ROOT_DIR = path.resolve(__dirname, "../../");
 
 export const serverConfig = {
   port: process.env.PORT || 3000,
-  corsOrigin: process.env.CORS_ORIGIN || "http://localhost:5173",
+  corsOrigin: process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(",")
+    : ["http://localhost:5173", "http://127.0.0.1:5173"],
   environment: process.env.NODE_ENV || "development",
   paths: {
     root: ROOT_DIR,

@@ -3,16 +3,48 @@ const RSLinxTester = {
   // Base URL for API calls
   baseUrl: "http://localhost:3000/api/rslinx",
 
+  // Helper method to handle API responses
+  async handleApiResponse(response, actionName) {
+    const contentType = response.headers.get("content-type");
+    let data;
+
+    try {
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        console.error(
+          `Unexpected response type for ${actionName}:`,
+          contentType
+        );
+        console.error("Response text:", text);
+        throw new Error(`Unexpected response type: ${contentType}`);
+      }
+    } catch (error) {
+      console.error(`Error parsing response for ${actionName}:`, error);
+      throw error;
+    }
+
+    if (!response.ok) {
+      console.error(
+        `${actionName} failed with status ${response.status}:`,
+        data
+      );
+      throw new Error(data.error || data.message || "Unknown error occurred");
+    }
+
+    return data;
+  },
+
   // Test connection status
   async testConnection() {
     console.log("Testing DDE RSLinx connection...");
     try {
       const response = await fetch(`${this.baseUrl}/status`);
-      const data = await response.json();
+      const data = await this.handleApiResponse(response, "Connection test");
       console.log("Connection status:", {
-        connected: data.connected,
-        server: data.server,
-        topic: data.topic,
+        available: data.available,
+        message: data.message,
       });
       return data;
     } catch (error) {
@@ -34,6 +66,7 @@ const RSLinxTester = {
           name: tagName,
           value: data.value,
           timestamp: data.timestamp,
+          error: data.error,
         });
       } else {
         console.error("Tag read failed:", data.error);
@@ -64,7 +97,7 @@ const RSLinxTester = {
         console.log("Tag write successful:", {
           name: tagName,
           success: data.success,
-          message: data.message,
+          error: data.error,
         });
       } else {
         console.error("Tag write failed:", data.error);
@@ -91,13 +124,14 @@ const RSLinxTester = {
       const data = await response.json();
 
       console.log("Batch read results:");
-      Object.entries(data).forEach(([tag, result]) => {
+      Object.entries(data.results).forEach(([tag, result]) => {
         if (result.error) {
           console.error(`- ${tag}: Failed - ${result.error}`);
         } else {
-          console.log(`- ${tag}: ${result.value} (${result.timestamp})`);
+          console.log(`- ${tag}: ${result.value}`);
         }
       });
+      console.log("Timestamp:", data.timestamp);
 
       return data;
     } catch (error) {
@@ -120,7 +154,7 @@ const RSLinxTester = {
       const data = await response.json();
 
       console.log("Batch write results:");
-      Object.entries(data).forEach(([tag, result]) => {
+      Object.entries(data.results).forEach(([tag, result]) => {
         if (result.error) {
           console.error(`- ${tag}: Failed - ${result.error}`);
         } else {
@@ -139,7 +173,8 @@ const RSLinxTester = {
   async testTagValidation(tagName) {
     console.log(`Testing validation of DDE tag: ${tagName}`);
     try {
-      const response = await fetch(`${this.baseUrl}/validate/${tagName}`);
+      const encodedTag = encodeURIComponent(tagName);
+      const response = await fetch(`${this.baseUrl}/validate/${encodedTag}`);
       const data = await response.json();
 
       if (data.valid) {
@@ -151,50 +186,6 @@ const RSLinxTester = {
       return data;
     } catch (error) {
       console.error("Validation test failed:", error);
-      throw error;
-    }
-  },
-
-  // DDE Simulator controls (development only)
-  async startSimulator() {
-    console.log("Starting DDE simulator...");
-    try {
-      const response = await fetch(`${this.baseUrl}/simulator/start`, {
-        method: "POST",
-      });
-      const data = await response.json();
-      console.log("DDE Simulator start result:", data);
-      return data;
-    } catch (error) {
-      console.error("Failed to start DDE simulator:", error);
-      throw error;
-    }
-  },
-
-  async stopSimulator() {
-    console.log("Stopping DDE simulator...");
-    try {
-      const response = await fetch(`${this.baseUrl}/simulator/stop`, {
-        method: "POST",
-      });
-      const data = await response.json();
-      console.log("DDE Simulator stop result:", data);
-      return data;
-    } catch (error) {
-      console.error("Failed to stop DDE simulator:", error);
-      throw error;
-    }
-  },
-
-  async getSimulatorStatus() {
-    console.log("Getting DDE simulator status...");
-    try {
-      const response = await fetch(`${this.baseUrl}/simulator/status`);
-      const data = await response.json();
-      console.log("DDE Simulator status:", data);
-      return data;
-    } catch (error) {
-      console.error("Failed to get simulator status:", error);
       throw error;
     }
   },
@@ -229,6 +220,8 @@ const RSLinxTester = {
         console.log(`Error: ${data.connection.error}`);
       }
 
+      console.log("\nTimestamp:", data.timestamp);
+
       // Troubleshooting tips if there are issues
       if (!data.connection.status) {
         console.log("\nTroubleshooting steps:");
@@ -256,25 +249,157 @@ const RSLinxTester = {
 
     console.log("Running all DDE RSLinx tests...");
     try {
-      // Test connection
+      console.log("\n1. Connection Test");
+      console.log("----------------");
       await this.testConnection();
 
-      // Test reading
+      console.log("\n2. Diagnostics");
+      console.log("-------------");
+      await this.runDiagnostics();
+
+      console.log("\n3. Read Test");
+      console.log("-----------");
       await this.testReadTag(readTag);
 
-      // Test writing
+      console.log("\n4. Write Test");
+      console.log("------------");
       await this.testWriteTag(writeTag, 42);
 
-      // Test batch operations
+      console.log("\n5. Batch Operations");
+      console.log("------------------");
       await this.testBatchRead([readTag]);
       await this.testBatchWrite({ [writeTag]: 42 });
 
-      // Test validation
+      console.log("\n6. Tag Validation");
+      console.log("----------------");
       await this.testTagValidation(readTag);
 
-      console.log("All tests completed successfully!");
+      console.log("\nAll tests completed successfully!");
     } catch (error) {
       console.error("Test suite failed:", error);
+      throw error;
+    }
+  },
+
+  async testSequentialWrite() {
+    console.log("Starting sequential write test...");
+
+    try {
+      const response = await fetch(`${this.baseUrl}/sequence`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: "TEST",
+          moNumber: "420690",
+          itemNumber: "123789",
+        }),
+      });
+
+      const data = await this.handleApiResponse(response, "Sequential write");
+
+      console.log("\nSequential write test completed:", data);
+      return data;
+    } catch (error) {
+      console.error("Sequential write test failed:", error);
+      throw error;
+    }
+  },
+
+  async monitorResponse(options = {}) {
+    const defaultOptions = {
+      pollInterval: 500,
+      timeout: 30000,
+      quantityThreshold: 0,
+      completeRequestExpected: "1",
+    };
+
+    const config = { ...defaultOptions, ...options };
+    console.log("Starting DDE response monitoring with config:", config);
+
+    const startTime = Date.now();
+    let lastQuantity = "0";
+    let lastCompleteRequest = "0";
+
+    while (Date.now() - startTime < config.timeout) {
+      try {
+        const response = await fetch(`${this.baseUrl}/monitor`);
+        const data = await this.handleApiResponse(response, "Monitor quantity");
+
+        const quantity = data.finalQuantity;
+        const completeRequest = data.completeRequest;
+
+        // Log only if values have changed
+        if (
+          quantity !== lastQuantity ||
+          completeRequest !== lastCompleteRequest
+        ) {
+          console.log(`\nCurrent values at ${data.timestamp}:`);
+          console.log(`- Quantity: ${quantity}`);
+          console.log(`- Complete Request: ${completeRequest}`);
+          lastQuantity = quantity;
+          lastCompleteRequest = completeRequest;
+        }
+
+        // Check if we've met our conditions
+        const quantityOk =
+          config.quantityThreshold === 0 ||
+          (quantity !== null &&
+            Number(quantity) >= Number(config.quantityThreshold));
+        const completeRequestOk =
+          completeRequest === config.completeRequestExpected;
+
+        if (quantityOk && completeRequestOk) {
+          console.log("\nDesired conditions met!");
+          return {
+            success: true,
+            finalQuantity: quantity,
+            finalCompleteRequest: completeRequest,
+            timeElapsed: Date.now() - startTime,
+          };
+        }
+
+        await new Promise((resolve) =>
+          setTimeout(resolve, config.pollInterval)
+        );
+      } catch (error) {
+        console.error("Error during monitoring:", error);
+        throw error;
+      }
+    }
+
+    // Timeout case
+    console.error("\nTimeout waiting for desired conditions!");
+    return {
+      success: false,
+      finalQuantity: lastQuantity,
+      finalCompleteRequest: lastCompleteRequest,
+      timeElapsed: Date.now() - startTime,
+    };
+  },
+  // Convenience method to run the full test sequence
+  async runFullTest(options = {}) {
+    try {
+      console.log("Starting full test sequence...");
+
+      // First run the sequential write test
+      await this.testSequentialWrite();
+
+      console.log("\nWaiting for DDE response...");
+      // Then monitor for the response
+      const result = await this.monitorResponse(options);
+
+      if (result.success) {
+        console.log("\nTest sequence completed successfully!");
+      } else {
+        console.log("\nTest sequence completed with timeout!");
+      }
+
+      console.log("Final Results:", result);
+      return result;
+    } catch (error) {
+      console.error("Full test sequence failed:", error);
       throw error;
     }
   },
