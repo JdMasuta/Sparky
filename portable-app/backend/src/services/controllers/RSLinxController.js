@@ -264,7 +264,7 @@ export const monitorQuantity = async (req, res) => {
       completeRequestExpected = "1",
     } = req.query;
 
-    const quantityTag = "Reel.RealData[10]";
+    const quantityTag = "Reel.RealData[0]";
     const completeRequestTag = "_200_GLB.BoolData[0].0";
 
     const startTime = Date.now();

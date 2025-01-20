@@ -1,4 +1,3 @@
-// ../components/entry/useRSLinxMonitor.jsx
 import { useState } from "react";
 
 export const useRSLinxMonitor = () => {
@@ -12,16 +11,21 @@ export const useRSLinxMonitor = () => {
 
     try {
       const response = await fetch("/api/rslinx/monitor");
-
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      if (data.quantity !== undefined) {
-        onQuantityReceived(data.quantity);
+      console.log("Received monitoring data:", data);
+
+      // Check if we have a successful response with finalQuantity
+      if (data.success && data.finalQuantity !== undefined) {
+        // console.log("Calling callback with quantity:", data.finalQuantity);
+        await onQuantityReceived(data.finalQuantity);
+      } else {
+        console.log("No valid quantity received:", data);
       }
-      console.log("Monitoring complete:", data);
+
       return data;
     } catch (error) {
       console.error("Error monitoring PLC:", error);

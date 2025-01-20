@@ -2,6 +2,7 @@
 export const useCheckoutSubmit = (formData, idMappings, setFormData) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const submitEvent = new Event("submit");
 
     try {
       const userId = idMappings.users.get(formData.name);
