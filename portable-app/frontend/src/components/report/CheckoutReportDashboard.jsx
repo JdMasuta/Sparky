@@ -61,7 +61,7 @@ const CheckoutReport = ({
               disabled={isLoading || !email.trim()}
               className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400"
             >
-              {isLoading ? "Sending..." : "Email CSV"}
+              {isLoading ? "Sending..." : "Email Report"}
             </button>
           </div>
           {selectedProject && (
