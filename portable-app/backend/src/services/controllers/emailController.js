@@ -3,6 +3,7 @@ import { getDatabase } from "../../init/db.init.js";
 import nodemailer from "nodemailer";
 import { Parser } from "json2csv";
 import emailConfig from "../config/email.config.js";
+import { generateHTMLTable } from "../templates/report.js";
 import config from "../config/rslinx.config.js";
 
 // Initialize the transporter outside of the request handlers but wrap it in a function
@@ -87,24 +88,23 @@ export const sendCheckoutReport = async (req, res) => {
     const db = getDatabase();
     const rows = db
       .prepare(
-        `
-      SELECT 
-        p.project_number,
-        i.sku AS item_sku,
-        i.name AS item_name,
-        SUM(c.quantity) AS total_quantity
-      FROM 
-        checkouts c
-      JOIN 
-        projects p ON c.project_id = p.project_id
-      JOIN 
-        items i ON c.item_id = i.item_id
-      WHERE 
-        c.timestamp >= ?
-      GROUP BY 
-        p.project_number, i.sku, i.name
-      ORDER BY 
-        p.project_number, i.sku, i.name`
+        `SELECT 
+          p.project_number,
+          i.sku AS item_sku,
+          i.name AS item_name,
+          SUM(c.quantity) AS total_quantity
+        FROM 
+          checkouts c
+        JOIN 
+          projects p ON c.project_id = p.project_id
+        JOIN 
+          items i ON c.item_id = i.item_id
+        WHERE 
+          c.timestamp >= ?
+        GROUP BY 
+          p.project_number, i.sku, i.name
+        ORDER BY 
+          p.project_number, i.sku, i.name`
       )
       .all(timestamp);
 
@@ -114,44 +114,25 @@ export const sendCheckoutReport = async (req, res) => {
         .send("No data found for the specified time period");
     }
 
-    const fields = [
-      "project_number",
-      "item_sku",
-      "item_name",
-      "total_quantity",
-    ];
-    const parser = new Parser({ fields });
-    const csv = parser.parse(rows);
+    // Generate the HTML table using the imported function
+    const htmlContent = generateHTMLTable(rows);
 
     const mailOptions = {
       from: emailConfig.defaults.from,
       to: email,
       subject: "Cable Audit System - Checkout Report",
-      text: `Please find attached the checkout report for data after ${timestamp}`,
-      attachments: [
-        {
-          filename: `checkout-report-${timestamp.split(" ")[0]}.csv`,
-          content: csv,
-        },
-      ],
+      html: `
+        <h1>Cable Audit System - Weekly Checkout Report</h1>
+        <p>Dear User,</p>
+        <p>Please find the detailed checkout report for the week starting from ${timestamp} below:</p>
+        ${htmlContent}
+      `,
     };
 
     try {
       await transporter.sendMail(mailOptions);
     } catch (error) {
       console.error("Failed to send email:", error);
-      console.log("Current email configuration:", {
-        host: emailConfig.host,
-        port: emailConfig.port,
-        secure: emailConfig.secure,
-        auth: {
-          user: emailConfig.auth.user,
-          pass:
-            process.env.NODE_ENV !== "production"
-              ? emailConfig.auth.pass
-              : "[REDACTED]",
-        },
-      });
       throw error;
     }
 
