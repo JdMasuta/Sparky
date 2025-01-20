@@ -2,6 +2,7 @@
 import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
+import cron from "node-cron";
 import { promises as fs } from "fs";
 import { initializeDatabase, closeDatabase } from "./init/db.init.js";
 import {
@@ -12,6 +13,7 @@ import cableDataRoutes from "./services/routes/cableDataRoutes.js";
 import RSLinxRoutes from "./services/routes/RSLinxRoutes.js";
 import emailRoutes from "./services/routes/emailRoutes.js";
 import errorHandler from "./services/middleware/errorHandler.js";
+import { sendCheckoutReport } from "./services/controllers/emailController.js";
 
 const app = express();
 
@@ -76,6 +78,45 @@ app.get("/health", (req, res) => {
   });
 });
 
+// Utility function to format timestamp
+const formatTimestamp = (date) => {
+  const pad = (n) => (n < 10 ? "0" + n : n);
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate()
+  )} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(
+    date.getSeconds()
+  )}`;
+};
+
+// Weekly Cron Job
+// Cron format: minute hour day month day_of_week
+cron.schedule("0 5 * * 1", async () => {
+  // Every Friday at 9:00 AM
+  console.log("Starting weekly report job...");
+
+  try {
+    // Generate timestamp for one week ago
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const timestamp = formatTimestamp(oneWeekAgo);
+
+    // List of emails to send the report to
+    const emailList = ["ruben.lara@bwpackaging.com"];
+
+    for (const email of emailList) {
+      console.log(`Sending report to ${email}`);
+      await sendCheckoutReport({
+        body: { timestamp, email },
+      });
+    }
+
+    console.log("Weekly report job completed successfully.");
+  } catch (error) {
+    console.error("Error during weekly report job:", error);
+  }
+});
+
+// Start server
 const startServer = async () => {
   try {
     // Initialize database
