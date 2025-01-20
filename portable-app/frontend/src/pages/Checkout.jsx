@@ -20,7 +20,7 @@ function Checkout() {
     handleInputChange,
     isValidSelection,
   } = useCheckoutForm(options);
-  const { handleSubmit: originalHandleSubmit } = useCheckoutSubmit(
+  const { handleSubmit: submitCheckout, resetForm } = useCheckoutSubmit(
     formData,
     idMappings,
     setFormData
@@ -53,19 +53,14 @@ function Checkout() {
         ...prev,
         quantity: quantity.toString(),
       }));
-      setShowPullModal(false);
       const success = await submitCheckout(new Event("submit"));
       if (success) {
         await resetStepInPLC();
+        setShowPullModal(false);
+        resetForm();
       }
     });
   };
-
-  const { handleSubmit: submitCheckout } = useCheckoutSubmit(
-    formData,
-    idMappings,
-    setFormData
-  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -78,6 +73,7 @@ function Checkout() {
   const handleManualEntry = () => {
     setShowPullModal(false);
     handleSubmit(new Event("submit"));
+    resetForm();
   };
 
   const fields = [
