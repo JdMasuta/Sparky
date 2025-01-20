@@ -1,6 +1,5 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { ArrowUpDown } from "lucide-react";
-import { use } from "react";
 import { useEmailReport } from "./useEmailReport";
 
 const CheckoutReport = ({
@@ -10,44 +9,30 @@ const CheckoutReport = ({
   const [sortDirection, setSortDirection] = useState("asc");
   const [selectedProject, setSelectedProject] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState(""); // Email state
   const { sendEmailReport } = useEmailReport({ timestamp: data.timestamp });
 
-  // Calculate project totals and max quantity for scaling
-  const projectStats = useMemo(() => {
-    if (!data?.data || !Array.isArray(data.data)) {
-      return { stats: {}, maxTotal: 0 };
-    }
+  const handleSendEmail = async () => {
+    setIsLoading(true);
+    await sendEmailReport(email); // Pass the dynamic email
+    setEmail(""); // Clear input field
+    setIsLoading(false);
+  };
 
-    const stats = data.data.reduce((acc, item) => {
-      const key = item.project_number;
-      if (!acc[key]) {
-        acc[key] = { total: 0, items: 0 };
-      }
-      // Convert string to number and handle invalid values
-      const quantity = parseInt(item.total_quantity, 10) || 0;
-      acc[key].total += quantity;
-      acc[key].items += 1;
-      return acc;
-    }, {});
-
-    const maxTotal = Math.max(...Object.values(stats).map((s) => s.total), 0);
-    return { stats, maxTotal };
-  }, [data]);
-
-  // Sort function for table data
   const sortedData = useMemo(() => {
     if (!data?.data || !Array.isArray(data.data)) return [];
-
     return [...data.data].sort((a, b) => {
       const dir = sortDirection === "asc" ? 1 : -1;
-
       if (sortField === "total_quantity") {
         return dir * (parseInt(a[sortField], 10) - parseInt(b[sortField], 10));
       }
-
       return dir * String(a[sortField]).localeCompare(String(b[sortField]));
     });
   }, [data, sortField, sortDirection]);
+
+  const filteredData = selectedProject
+    ? sortedData.filter((item) => item.project_number === selectedProject)
+    : sortedData;
 
   const handleSort = (field) => {
     if (field === sortField) {
@@ -58,24 +43,27 @@ const CheckoutReport = ({
     }
   };
 
-  // Filter data by selected project
-  const filteredData = selectedProject
-    ? sortedData.filter((item) => item.project_number === selectedProject)
-    : sortedData;
-
   return (
     <div className="space-y-6">
-      {/* Detailed Table Section */}
       <div className="bg-white rounded-lg p-6 shadow-sm">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">Detailed Report</h2>
-          <button
-            onClick={sendEmailReport}
-            disabled={isLoading}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400"
-          >
-            {isLoading ? "Sending..." : "Email CSV"}
-          </button>
+          <div className="flex items-center gap-2">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter email"
+              className="px-3 py-2 border rounded-md"
+            />
+            <button
+              onClick={handleSendEmail}
+              disabled={isLoading || !email.trim()}
+              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400"
+            >
+              {isLoading ? "Sending..." : "Email CSV"}
+            </button>
+          </div>
           {selectedProject && (
             <button
               onClick={() => setSelectedProject(null)}

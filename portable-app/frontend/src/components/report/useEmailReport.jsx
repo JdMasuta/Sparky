@@ -5,9 +5,9 @@ export const useEmailReport = ({ timestamp }) => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
 
-  const sendEmailReport = async () => {
+  const sendEmailReport = async (email) => {
     const controller = new AbortController();
-    let isActive = true; // Flag to prevent setState after unmount
+    let isActive = true;
 
     setIsLoading(true);
     setError(null);
@@ -21,10 +21,7 @@ export const useEmailReport = ({ timestamp }) => {
           "Content-Type": "application/json",
         },
         signal: controller.signal,
-        body: JSON.stringify({
-          timestamp,
-          email: "jdmeesey@gmail.com", // Hardcoded for now
-        }),
+        body: JSON.stringify({ timestamp, email }), // Use the dynamic email
       });
 
       if (!response.ok) {
@@ -33,7 +30,7 @@ export const useEmailReport = ({ timestamp }) => {
 
       const data = await response.json();
 
-      if (!isActive) return; // Don't update state if component unmounted
+      if (!isActive) return;
       setSuccess(true);
     } catch (err) {
       if (err.name === "AbortError") return;
