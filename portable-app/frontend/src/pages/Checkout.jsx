@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import MainNavBar from "../components/shared/MainNavBar.jsx";
 import Modal from "../components/shared/Modal.jsx";
 import logo from "../assets/images/BW Integrated Systems.png";
@@ -25,13 +25,30 @@ function Checkout() {
     idMappings,
     setFormData
   );
-  const { startMonitoring, isMonitoring } = useRSLinxMonitor();
+  const { startMonitoring, stopMonitoring, isMonitoring } = useRSLinxMonitor();
   const { writeToPLC, resetStepInPLC } = usePLCTags();
   const { fieldRefs, focusNextField } = useFieldAutomation();
+
+  const [isFirstLoad, setIsFirstLoad] = useState(true); // Track first load
+
+  // Focus the first field only on initial page load
+  useEffect(() => {
+    if (isFirstLoad && fieldRefs.name) {
+      fieldRefs.name.current.focus(); // Focus the first field (name)
+      resetStepInPLC(); // Reset the step number in PLC
+      setIsFirstLoad(false); // Set flag to prevent further focus
+    }
+  }, [isFirstLoad, fieldRefs]);
 
   const handleFieldChange = async (e) => {
     const { name, value } = e.target;
     handleInputChange(e);
+
+    // Disable the input field while awaiting PLC write
+    // Only disable input fields other than 'quantity'
+    if (name !== "quantity") {
+      e.target.disabled = true; // Disable the input field
+    }
 
     // Only proceed with PLC writing if it's a valid selection for fields with options
     const fieldHasOptions = Boolean(options[name + "s"]);
@@ -44,6 +61,9 @@ function Checkout() {
         focusNextField(name);
       }
     }
+
+    // Re-enable the input field after the PLC write
+    e.target.disabled = false; // Re-enable the input field
   };
 
   const handlePullClick = () => {
@@ -70,9 +90,16 @@ function Checkout() {
     }
   };
 
-  const handleManualEntry = () => {
+  const handleManualEntry = async () => {
+    try {
+      await stopMonitoring(); // Stop the monitoring process
+      console.log("Manual entry initiated, monitoring stopped.");
+    } catch (err) {
+      console.error("Error while stopping monitoring:", err);
+    }
+
     setShowPullModal(false);
-    handleSubmit(new Event("submit"));
+    await handleSubmit(new Event("submit"));
     resetForm();
   };
 
