@@ -1,5 +1,5 @@
 // Path to the SQLite database file (e.g., 'database.sqlite')
-const sqliteDbPath = "dev.sqlite";
+const sqliteDbPath = "../../database/dev.sqlite";
 
 // Import the better-sqlite3 library
 import sqlite3 from "better-sqlite3";
@@ -11,7 +11,7 @@ function deleteAllUsers() {
     const db = new sqlite3(sqliteDbPath);
 
     // Execute the DELETE statement
-    const stmt = db.prepare("DELETE FROM sqlite_sequence");
+    const stmt = db.prepare("DELETE FROM checkouts WHERE quantity = 0");
     const result = stmt.run();
 
     // Log the number of rows deleted
