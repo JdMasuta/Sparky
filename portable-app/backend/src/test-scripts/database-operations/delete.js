@@ -11,7 +11,7 @@ function deleteAllUsers() {
     const db = new sqlite3(sqliteDbPath);
 
     // Execute the DELETE statement
-    const stmt = db.prepare("DELETE FROM checkouts WHERE quantity = 0");
+    const stmt = db.prepare("DELETE FROM checkouts WHERE quantity <= 0");
     const result = stmt.run();
 
     // Log the number of rows deleted
