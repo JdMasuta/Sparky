@@ -26,7 +26,7 @@ export const generateHTMLTable = (rows) => {
     .join("");
 
   return `
-    <div style="width: 70%; overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+    <div style="width: 100%; overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
       <table style="width: 100%; border-collapse: collapse; text-align: left;">
         <thead>
           <tr style="background: #f7fafc; border-bottom: 1px solid #e2e8f0;">
