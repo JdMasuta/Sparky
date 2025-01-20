@@ -103,7 +103,9 @@ function Checkout() {
       name: "quantity",
       placeholder: "Enter quantity...",
       pattern: "^\\d*\\.?\\d*$",
+      type: "number",
       ref: fieldRefs.quantity,
+      //hidden: true,
     },
   ];
 
@@ -132,7 +134,7 @@ function Checkout() {
             </div>
 
             <div className="checkout-submit">
-              {shouldShowField("quantity") && formData.quantity && (
+              {shouldShowField("item") && formData.item && (
                 <button
                   type="button"
                   className="pull-button"
@@ -142,18 +144,6 @@ function Checkout() {
                   Pull
                 </button>
               )}
-
-              <button
-                type="submit"
-                className="checkout-button"
-                disabled={
-                  !shouldShowField("quantity") ||
-                  !formData.quantity ||
-                  isMonitoring
-                }
-              >
-                Submit Checkout
-              </button>
             </div>
           </form>
         </div>

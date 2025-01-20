@@ -12,6 +12,7 @@ const CheckoutField = forwardRef(
       options = [],
       pattern,
       showField = true,
+      hidden = false,
       type = "text",
     },
     ref
@@ -19,9 +20,11 @@ const CheckoutField = forwardRef(
     if (!showField) return null;
 
     const isDropdown = options.length > 0;
+    const fieldClassName = `checkout-field fade-in${hidden ? " hidden" : ""}`;
+    const fieldValue = hidden ? "0" : value;
 
     return (
-      <div className="checkout-field fade-in">
+      <div className={fieldClassName}>
         <label htmlFor={name} className="checkout-label">
           {label}
         </label>
@@ -30,7 +33,7 @@ const CheckoutField = forwardRef(
           type={type}
           id={name}
           name={name}
-          value={value}
+          value={fieldValue}
           onChange={onChange}
           onInput={(e) => {
             onChange(e);
