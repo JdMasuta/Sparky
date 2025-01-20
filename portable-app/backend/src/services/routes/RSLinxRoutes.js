@@ -11,6 +11,7 @@ import {
   validateTagConnection,
   monitorQuantity,
   writeSequence,
+  stopMonitoring,
 } from "../controllers/RSLinxController.js"; // DDE controller functions
 
 const router = express.Router();
@@ -32,7 +33,8 @@ router.get("/validate/:tagName", validateTagConnection);
 router.get("/diagnostics", runDiagnostics);
 
 // Production Operations
-router.get("/monitor", monitorQuantity);
+router.get("/monitor/:sessionId", monitorQuantity);
+router.post("/monitor/stop", stopMonitoring);
 router.post("/sequence", writeSequence);
 
 export default router;

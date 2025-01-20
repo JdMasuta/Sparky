@@ -255,7 +255,17 @@ export const writeSequence = async (req, res) => {
   }
 };
 
+const monitoringSessions = new Map(); // Track active sessions
+
 export const monitorQuantity = async (req, res) => {
+  const { sessionId } = req.params; // Extract sessionId from the route
+  if (!sessionId) {
+    return res.status(400).json({ error: "sessionId is required" });
+  }
+
+  const abortController = new AbortController();
+  monitoringSessions.set(sessionId, abortController);
+
   try {
     const {
       pollInterval = 500,
@@ -271,18 +281,20 @@ export const monitorQuantity = async (req, res) => {
     let quantity = null;
     let lastCompleteRequest = "0";
 
-    // Keep polling until timeout or success
     while (Date.now() - startTime < Number(timeout)) {
+      if (abortController.signal.aborted) {
+        console.log(`Monitoring session ${sessionId} was aborted.`);
+        return res.status(200).json({ success: false, aborted: true });
+      }
+
       const completeRequestResult = await ddeClient.readTag(completeRequestTag);
       const completeRequest = completeRequestResult.value;
 
-      // Only read quantity when completeRequest is "1"
       if (completeRequest === "1") {
         const quantityResult = await ddeClient.readTag(quantityTag);
         quantity = quantityResult.value;
       }
 
-      // Check if conditions are met
       const numericQuantity = quantity !== null ? Number(quantity) : 0;
       const numericThreshold = Number(quantityThreshold);
 
@@ -290,6 +302,7 @@ export const monitorQuantity = async (req, res) => {
         numericThreshold === 0 || numericQuantity >= numericThreshold;
 
       if (completeRequest === "1" && quantity !== null && thresholdCheck) {
+        monitoringSessions.delete(sessionId);
         return res.json({
           success: true,
           finalQuantity: quantity,
@@ -299,14 +312,12 @@ export const monitorQuantity = async (req, res) => {
         });
       }
 
-      // Store last completeRequest for timeout case
       lastCompleteRequest = completeRequest;
 
-      // Wait for next poll interval
       await new Promise((resolve) => setTimeout(resolve, Number(pollInterval)));
     }
 
-    // If we get here, we hit the timeout
+    monitoringSessions.delete(sessionId);
     res.json({
       success: false,
       finalQuantity: quantity || "0",
@@ -315,6 +326,24 @@ export const monitorQuantity = async (req, res) => {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
+    monitoringSessions.delete(sessionId);
     res.status(500).json({ error: error.message });
   }
+};
+
+// Endpoint to stop monitoring
+export const stopMonitoring = (req, res) => {
+  const { sessionId } = req.body;
+  const controller = monitoringSessions.get(sessionId);
+
+  if (!controller) {
+    return res.status(404).json({ error: "Session not found" });
+  }
+
+  controller.abort(); // Cancel the session
+  monitoringSessions.delete(sessionId); // Clean up
+  res.json({
+    success: true,
+    message: `Monitoring session ${sessionId} stopped.`,
+  });
 };
