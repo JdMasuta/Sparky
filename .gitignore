@@ -162,3 +162,6 @@ $RECYCLE.BIN/
 
 # Better-Sqlite3 files
 *.sqlite
+
+# Import csv
+*.csv
