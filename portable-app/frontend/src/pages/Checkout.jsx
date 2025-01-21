@@ -72,7 +72,6 @@ function Checkout() {
 
     // Check if the field has options
     const fieldHasOptions = Boolean(optionsKey && options[optionsKey]);
-    console.log(`Field ${name} has options: ${fieldHasOptions}`);
 
     let currentOptions = null;
 
