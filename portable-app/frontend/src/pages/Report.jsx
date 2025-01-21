@@ -18,9 +18,6 @@ function App() {
 
   return (
     <div>
-      <div className="logo-container">
-        <img src={logo} alt="BW Integrated Systems" className="logo-image" />
-      </div>
       <MainNavBar />
       <NavBar />
       <FetchPullsData

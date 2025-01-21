@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import MainNavBar from "../components/shared/MainNavBar.jsx";
 import Modal from "../components/shared/Modal.jsx";
-import logo from "../assets/images/BW Integrated Systems.png";
 import { useCheckoutForm } from "../components/entry/useCheckoutForm";
 import { useCheckoutData } from "../components/entry/useCheckoutData";
 import { useCheckoutSubmit } from "../components/entry/useCheckoutSubmit";
@@ -9,6 +8,7 @@ import { useRSLinxMonitor } from "../components/entry/useRSLinxMonitor";
 import { usePLCTags } from "../components/entry/usePLCTags";
 import { useFieldAutomation } from "../components/entry/useFieldAutomation";
 import CheckoutField from "../components/entry/CheckoutField";
+import PullOptionsModal from "../components/entry/PullModal.jsx";
 
 function Checkout() {
   const [showPullModal, setShowPullModal] = useState(false);
@@ -138,9 +138,6 @@ function Checkout() {
 
   return (
     <div>
-      <div className="logo-container">
-        <img src={logo} alt="BW Integrated Systems" className="logo-image" />
-      </div>
       <MainNavBar />
 
       <div className="container">
@@ -176,21 +173,14 @@ function Checkout() {
         </div>
       </div>
 
-      <Modal
+      <div>
+      <button onClick={() => setShowPullModal(true)}>Open Pull Modal</button>
+      <PullOptionsModal
         isOpen={showPullModal}
         onClose={() => setShowPullModal(false)}
-        title="Pull Options"
-      >
-        <div className="flex items-center justify-between p-4">
-          <span>Use HMI for automatic pull or:</span>
-          <button
-            onClick={handleManualEntry}
-            className="bg-blue-500 text-white px-4 py-2 rounded"
-          >
-            Manual Entry
-          </button>
-        </div>
-      </Modal>
+        onManualEntry={handleManualEntry}
+      />
+    </div>
     </div>
   );
 }

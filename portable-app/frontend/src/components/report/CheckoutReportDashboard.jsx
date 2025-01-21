@@ -49,21 +49,23 @@ const CheckoutReport = ({
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">Detailed Report</h2>
           <div className="flex items-center gap-2">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter email"
-              className="px-3 py-2 border rounded-md"
-            />
-            <button
-              onClick={handleSendEmail}
-              disabled={isLoading || !email.trim()}
-              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400"
-            >
-              {isLoading ? "Sending..." : "Email Report"}
-            </button>
-          </div>
+            <div className="checkout-button">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter email"
+                  className="px-3 py-2 border rounded-md"
+                />
+                <button
+                  onClick={handleSendEmail}
+                  disabled={isLoading || !email.trim()}
+                  className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400"
+                >
+                  {isLoading ? "Sending..." : "Email Report"}
+                </button>
+              </div>
+            </div>
           {selectedProject && (
             <button
               onClick={() => setSelectedProject(null)}

@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-
+import logo from "../../assets/images/BW Integrated Systems.png";
 const MainNavBar = () => {
   const navigate = useNavigate();
 
@@ -13,6 +13,9 @@ const MainNavBar = () => {
 
   return (
     <nav className="nav">
+      <div className="logo-container">
+        <img src={logo} alt="BW Integrated Systems" className="logo-image" />
+      </div>
       <div className="nav-content">
         <div>
           <h1>Sparky Cart</h1>

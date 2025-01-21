@@ -22,26 +22,30 @@ const NavBar = () => {
   };
 
   return (
-    <nav className="nav">
-      <div className="nav-content">
-        <h1>BW Cable Audit System</h1>
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="date-input"
-        />
-        <button
-          onClick={handleGenerateReport}
-          className="generate-report-button"
-        >
-          Generate Report
-        </button>
-        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-          {reportData && <CheckoutReport data={reportData} />}
-        </Modal>
-      </div>
-    </nav>
+    <div>
+      <br>
+      </br>
+      <nav className="nav">
+        <div className="nav-content">
+          <h1>BW Cable Audit System</h1>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="date-input"
+          />
+          <button
+            onClick={handleGenerateReport}
+            className="generate-report-button"
+          >
+            Generate Report
+          </button>
+          <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+            {reportData && <CheckoutReport data={reportData} />}
+          </Modal>
+        </div>
+      </nav>
+    </div>
   );
 };
 
