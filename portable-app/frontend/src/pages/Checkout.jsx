@@ -173,8 +173,7 @@ function Checkout() {
         </div>
       </div>
 
-      <div>
-      <button onClick={() => setShowPullModal(true)}>Open Pull Modal</button>
+    <div>
       <PullOptionsModal
         isOpen={showPullModal}
         onClose={() => setShowPullModal(false)}
