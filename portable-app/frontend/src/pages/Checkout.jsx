@@ -41,6 +41,8 @@ function Checkout() {
   // Focus the first field only on initial page load
   useEffect(() => {
     if (isFirstLoad && fieldRefs.name) {
+      const status = fetch("/api/RSLinx/status"); // Check the connection status
+      console.log("Connection status:", status);
       fieldRefs.name.current.focus(); // Focus the first field (name)
       resetStepInPLC(); // Reset the step number in PLC
       async () => {

@@ -1,8 +1,26 @@
-// ../components/entry/useCheckoutSubmit.jsx
+async function getQuantity(quantity) {
+  if (quantity === null) {
+    console.warn("Quantity is null, retrieving backup quantity...");
+    try {
+      const response = await fetch("/api/RSLinx/tags/Reel.RealData[10]", {
+        method: "GET",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to retrieve backup quantity from API.");
+      }
+      const data = await response.json(); // Adjust this based on API response
+      return data.value || null; // Assuming API returns an object with `quantity`
+    } catch (error) {
+      console.error("Error retrieving backup quantity:", error);
+      throw error;
+    }
+  }
+  return quantity;
+}
+
 export const useCheckoutSubmit = (formData, idMappings, setFormData) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const submitEvent = new Event("submit");
 
     try {
       const userId = idMappings.users.get(formData.name);
@@ -23,17 +41,19 @@ export const useCheckoutSubmit = (formData, idMappings, setFormData) => {
       const timestamp = now
         .toLocaleString("sv-SE", options)
         .replace(" ", "T")
-        .replace("T", " ")
         .replace(/-/g, "-")
         .replace(/:/g, ":");
 
-      const checkoutData = {
+      let checkoutData = {
         user_id: userId,
         project_id: projectId,
         item_id: itemId,
-        quantity: parseFloat(formData.quantity),
+        quantity: parseFloat(formData.quantity) || null,
         timestamp: timestamp,
       };
+
+      // Handle null quantity by fetching backup
+      checkoutData.quantity = await getQuantity(checkoutData.quantity);
 
       console.log("Submitting checkout:", JSON.stringify(checkoutData));
       const response = await fetch("http://localhost:3000/api/checkout", {
@@ -48,7 +68,9 @@ export const useCheckoutSubmit = (formData, idMappings, setFormData) => {
         throw new Error("Failed to submit checkout");
       }
 
-      return true; // Return true on successful submission
+      alert("Checkout submitted successfully!");
+      resetForm(); // Reset form on successful submission
+      return true;
     } catch (error) {
       console.error("Error submitting checkout:", error);
       alert("Failed to submit checkout. Please try again.");
@@ -63,7 +85,6 @@ export const useCheckoutSubmit = (formData, idMappings, setFormData) => {
       item: "",
       quantity: "",
     });
-    alert("Checkout successful!");
   };
 
   return { handleSubmit, resetForm };
