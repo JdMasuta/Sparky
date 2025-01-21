@@ -172,14 +172,16 @@ function Checkout() {
           </form>
         </div>
       </div>
-
-    <div>
-      <PullOptionsModal
-        isOpen={showPullModal}
-        onClose={() => setShowPullModal(false)}
-        onManualEntry={handleManualEntry}
-      />
-    </div>
+      <div>
+        <PullOptionsModal
+          isOpen={showPullModal}
+          onClose={() => {
+            stopMonitoring();
+            setShowPullModal(false);
+          }}
+          onManualEntry={handleManualEntry}
+        />;
+      </div>
     </div>
   );
 }
