@@ -30,7 +30,7 @@ export const securityConfig = {
     max: 100, // limit each IP to 100 requests per windowMs
   },
   cors: {
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   },
