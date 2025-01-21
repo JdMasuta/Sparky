@@ -31,11 +31,34 @@ function Checkout() {
 
   const [isFirstLoad, setIsFirstLoad] = useState(true); // Track first load
 
+  const optionKeyMap = {
+    name: "users",
+    project: "projects",
+    item: "items",
+    quantity: null, // No options for quantity
+  };
+
   // Focus the first field only on initial page load
   useEffect(() => {
     if (isFirstLoad && fieldRefs.name) {
       fieldRefs.name.current.focus(); // Focus the first field (name)
       resetStepInPLC(); // Reset the step number in PLC
+      async () => {
+        fetch("/api/RSLinx/batch/write", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            tags: [
+              "_200_GLB.StringData[0]",
+              "_200_GLB.StringData[1]",
+              "_200_GLB.StringData[2]",
+            ],
+            values: ["", "", ""],
+          }),
+        });
+      };
       setIsFirstLoad(false); // Set flag to prevent further focus
     }
   }, [isFirstLoad, fieldRefs]);
@@ -44,26 +67,39 @@ function Checkout() {
     const { name, value } = e.target;
     handleInputChange(e);
 
-    // Disable the input field while awaiting PLC write
-    // Only disable input fields other than 'quantity'
-    if (name !== "quantity") {
-      e.target.disabled = true; // Disable the input field
+    // Retrieve the key for options based on the field name
+    const optionsKey = optionKeyMap[name];
+
+    // Check if the field has options
+    const fieldHasOptions = Boolean(optionsKey && options[optionsKey]);
+    console.log(`Field ${name} has options: ${fieldHasOptions}`);
+
+    let currentOptions = null;
+
+    if (fieldHasOptions) {
+      // Load the list of options dynamically
+      currentOptions = options[optionsKey];
+
+      // Validate the selection if the field has options
+      if (isValidSelection(value, currentOptions)) {
+        e.target.disabled = true; // Disable the input field while processing
+      }
     }
 
-    // Only proceed with PLC writing if it's a valid selection for fields with options
-    const fieldHasOptions = Boolean(options[name + "s"]);
+    // Proceed with PLC writing for valid selections or fields without options
     if (
       !fieldHasOptions ||
-      (fieldHasOptions && isValidSelection(value, options[name + "s"]))
+      (fieldHasOptions && isValidSelection(value, currentOptions))
     ) {
       const success = await writeToPLC(name, value);
+      console.log(`PLC write success for ${name}: ${success}`);
       if (success) {
         focusNextField(name);
       }
     }
 
     // Re-enable the input field after the PLC write
-    e.target.disabled = false; // Re-enable the input field
+    e.target.disabled = false;
   };
 
   const handlePullClick = () => {
@@ -180,7 +216,8 @@ function Checkout() {
             setShowPullModal(false);
           }}
           onManualEntry={handleManualEntry}
-        />;
+        />
+        ;
       </div>
     </div>
   );
