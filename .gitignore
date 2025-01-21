@@ -165,3 +165,6 @@ $RECYCLE.BIN/
 
 # Import csv
 *.csv
+
+# Package-lock
+package-lock.json
