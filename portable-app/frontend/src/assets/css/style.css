@@ -9,6 +9,8 @@ body {
 
 /* Navigation */
 .nav {
+  width: 100%; /* Make it span the full width */
+  margin: 0 auto; /* Center it horizontally */
   background-color: #00a3e0;
   padding: 1rem;
   color: white;
@@ -118,11 +120,6 @@ th {
 
 td {
   padding: 1rem 1.5rem;
-  border-top: 1px solid #e2e8f0;
-}
-
-tr:hover {
-  background: #93c5fd;
 }
 
 .status-badge {
