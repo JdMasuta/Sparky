@@ -8,10 +8,12 @@ function useTableData() {
     checkouts: [],
   });
 
-  const fetchTableData = async (table, limit) => {
-    const url = `/api/${table}${limit ? `/simple/${limit}` : ""}`;
-    console.log("Fetching data from:", url);
-    const response = await fetch(url);
+  const fetchTableData = async (table) => {
+    const url = `/api/${table}`;
+    console.log("Fetching super-troopers from:", url);
+    const response = await fetch(url, {
+      method: "GET",
+    });
     return response.json();
   };
 
@@ -19,33 +21,35 @@ function useTableData() {
     const users = await fetchTableData("users");
     const projects = await fetchTableData("projects");
     const items = await fetchTableData("items");
-    const checkouts = await fetchTableData("checkouts", 20);
+    const checkouts = await fetchTableData("checkouts");
     setTablesData({ users, projects, items, checkouts });
   }, []);
 
   const updateTable = async (table, operation, entry, id = null) => {
     let response;
+    const url = id ? `/api/${table}/${id}` : `/api/${table}`;
+    const options = {
+      headers: { "Content-Type": "application/json" },
+    };
+
     if (operation === "add") {
-      response = await fetch(`/api/${table}`, {
+      response = await fetch(url, {
+        ...options,
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(entry),
       });
     } else if (operation === "edit") {
-      response = await fetch(`/api/${table}/${id}`, {
+      response = await fetch(url, {
+        ...options,
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(entry),
       });
     } else if (operation === "delete") {
-      response = await fetch(`/api/${table}/${id}`, { method: "DELETE" });
+      response = await fetch(url, { ...options, method: "DELETE" });
     }
 
     if (response.ok) {
-      const updatedData = await fetchTableData(
-        table,
-        table === "checkouts" ? 20 : undefined
-      );
+      const updatedData = await fetchTableData(table);
       setTablesData((prev) => ({ ...prev, [table]: updatedData }));
     }
   };
