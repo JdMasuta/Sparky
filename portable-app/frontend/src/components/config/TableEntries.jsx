@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import useTableData from "./useTableData.jsx";
 
 function TableEntries({ table }) {
-  const { tablesData, updateTable } = useTableData();
+  const { tablesData, updateTable, preloadTables } = useTableData();
   const [newEntry, setNewEntry] = useState({});
   const [editing, setEditing] = useState(null);
   const entries = tablesData[table] || []; // Ensure entries is always an array
@@ -10,6 +10,7 @@ function TableEntries({ table }) {
   useEffect(() => {
     if (!entries.length) {
       console.log(`Fetching data for table: ${table}`);
+      preloadTables();
     }
   }, [table, entries]);
 

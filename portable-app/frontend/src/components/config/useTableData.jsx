@@ -10,11 +10,17 @@ function useTableData() {
 
   const fetchTableData = async (table) => {
     const url = `/api/${table}`;
-    console.log("Fetching super-troopers from:", url);
-    const response = await fetch(url, {
+    const options = {
       method: "GET",
-    });
-    return response.json();
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+    const response = await fetch(url, options).catch((err) =>
+      console.error(err)
+    );
+    const data = await response.json();
+    return data;
   };
 
   const preloadTables = useCallback(async () => {
@@ -22,7 +28,10 @@ function useTableData() {
     const projects = await fetchTableData("projects");
     const items = await fetchTableData("items");
     const checkouts = await fetchTableData("checkouts");
-    setTablesData({ users, projects, items, checkouts });
+    console.log("Preloading tables...");
+    const reversedCheckouts = [...checkouts].reverse();
+    console.log("checkouts: ", reversedCheckouts);
+    setTablesData({ users, projects, items, reversedCheckouts });
   }, []);
 
   const updateTable = async (table, operation, entry, id = null) => {
@@ -51,6 +60,7 @@ function useTableData() {
     if (response.ok) {
       const updatedData = await fetchTableData(table);
       setTablesData((prev) => ({ ...prev, [table]: updatedData }));
+      console.log("Table: ", table, " updated successfully!");
     }
   };
 
