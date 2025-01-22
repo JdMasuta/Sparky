@@ -1,5 +1,7 @@
 import { useState, useCallback } from "react";
 
+const TABLE_NAMES = ["users", "projects", "items", "checkouts"];
+
 function useTableData() {
   const [tablesData, setTablesData] = useState({
     users: [],
@@ -8,66 +10,97 @@ function useTableData() {
     checkouts: [],
   });
 
-  const fetchTableData = async (table) => {
-    const url = `/api/${table}`;
-    const options = {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    };
-    const response = await fetch(url, options).catch((err) =>
-      console.error(err)
-    );
-    const data = await response.json();
-    return data;
-  };
-
-  const preloadTables = useCallback(async () => {
-    const users = await fetchTableData("users");
-    const projects = await fetchTableData("projects");
-    const items = await fetchTableData("items");
-    const checkouts = await fetchTableData("checkouts");
-    console.log("Preloading tables...");
-    const reversedCheckouts = [...checkouts].reverse();
-    console.log("checkouts: ", reversedCheckouts);
-    setTablesData({ users, projects, items, reversedCheckouts });
+  /**
+   * Helper function to fetch data from a specific table
+   */
+  const fetchTableData = useCallback(async (table) => {
+    try {
+      const response = await fetch(`/api/${table}`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch ${table}: ${response.statusText}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(error);
+      return []; // Return empty array or handle error as needed
+    }
   }, []);
 
-  const updateTable = async (table, operation, entry, id = null) => {
-    let response;
-    const url = id ? `/api/${table}/${id}` : `/api/${table}`;
-    const options = {
-      headers: { "Content-Type": "application/json" },
+  /**
+   * Preload all defined tables in TABLE_NAMES
+   * Uses Promise.all for parallel fetching
+   */
+  const preloadTables = useCallback(async () => {
+    try {
+      const results = await Promise.all(TABLE_NAMES.map(fetchTableData));
+
+      // Build an object mapping table name -> fetched data
+      const dataMap = TABLE_NAMES.reduce((acc, tableName, index) => {
+        acc[tableName] = results[index];
+        return acc;
+      }, {});
+
+      setTablesData(dataMap);
+    } catch (error) {
+      console.error("Failed to preload tables:", error);
+    }
+  }, [fetchTableData]);
+
+  /**
+   * Helper to determine the correct HTTP method given an operation
+   */
+  const getMethodFromOperation = (operation) => {
+    const methods = {
+      add: "POST",
+      edit: "PUT",
+      delete: "DELETE",
     };
-
-    if (operation === "add") {
-      response = await fetch(url, {
-        ...options,
-        method: "POST",
-        body: JSON.stringify(entry),
-      });
-    } else if (operation === "edit") {
-      response = await fetch(url, {
-        ...options,
-        method: "PUT",
-        body: JSON.stringify(entry),
-      });
-    } else if (operation === "delete") {
-      response = await fetch(url, { ...options, method: "DELETE" });
-    }
-
-    if (response.ok) {
-      const updatedData = await fetchTableData(table);
-      setTablesData((prev) => ({ ...prev, [table]: updatedData }));
-      console.log("Table: ", table, " updated successfully!");
-    }
+    return methods[operation] || "GET";
   };
+
+  /**
+   * Update a specific table with the given operation
+   */
+  const updateTable = useCallback(
+    async (table, operation, entry, id = null) => {
+      const method = getMethodFromOperation(operation);
+      const url = id ? `/api/${table}/${id}` : `/api/${table}`;
+
+      try {
+        const response = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          // Only include a body for non-DELETE requests
+          body: operation !== "delete" ? JSON.stringify(entry) : undefined,
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to ${operation} to ${table} table: ${response.statusText}`
+          );
+        }
+
+        // Refetch the updated data for this table
+        const updatedData = await fetchTableData(table);
+        setTablesData((prev) => ({ ...prev, [table]: updatedData }));
+
+        console.log(`Table "${table}" updated successfully!`);
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [fetchTableData]
+  );
 
   return {
     tablesData,
     preloadTables,
     updateTable,
+    fetchTableData, // Exposed if needed externally
+    setTablesData, // Exposed if you need to manually set data
   };
 }
 

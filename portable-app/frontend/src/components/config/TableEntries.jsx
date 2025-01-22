@@ -13,8 +13,6 @@ const tableKeyMap = {
 // for a given table and entry object:
 function getIdForTable(table, entry) {
   const keyName = tableKeyMap[table];
-  // If the table doesn't exist in our map, fall back to `entry.id`
-  // or handle it however you need:
   return keyName ? entry[keyName] : entry.id;
 }
 
@@ -23,44 +21,54 @@ function TableEntries({ table }) {
     tablesData,
     updateTable,
     preloadTables,
-    fetchTableData,
-    setTablesData,
+    // fetchTableData, // Not needed if we always rely on preloaded data
+    // setTablesData,  // Not needed for normal usage here unless you have special cases
   } = useTableData();
 
   const [newEntry, setNewEntry] = useState({});
   const [editing, setEditing] = useState(null);
   const entries = tablesData[table] || []; // Ensure entries is always an array
+
   const [isPreloaded, setIsPreloaded] = useState(false);
 
-  // Preload all tables once, if needed
+  /**
+   * Preload ALL tables once on mount, if not already preloaded.
+   * After this, we should have `tablesData` for every table in your app,
+   * including the one specified by `table`.
+   */
   useEffect(() => {
     if (!isPreloaded) {
-      console.log("Preloading tables...");
+      console.log("Preloading all tables...");
       preloadTables().then(() => setIsPreloaded(true));
     }
+    // Only run once (or until isPreloaded = true)
   }, [isPreloaded, preloadTables]);
 
-  // Fetch the current table's data if it hasn't been fetched yet
-  useEffect(() => {
-    const fetchTableDataIfEmpty = async () => {
-      if (!entries.length) {
-        console.log(`Fetching data for table: ${table}`);
-        const data = await fetchTableData(table);
-        setTablesData((prev) => ({ ...prev, [table]: data }));
-      }
-    };
-
-    fetchTableDataIfEmpty();
-  }, [table, entries.length, fetchTableData, setTablesData]);
-
+  /**
+   * Handle form input for adding/editing an entry
+   */
   const handleInputChange = (e) => {
-    setNewEntry({ ...newEntry, [e.target.name]: e.target.value });
+    setNewEntry((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
   };
 
+  /**
+   * Early return if there's truly no data (empty array) for this table
+   * or if preload hasn't happened yet. You can adjust this condition as needed.
+   */
   if (!entries.length) {
-    return <p>No data available for {table}.</p>; // Display a message when there's no data
+    return (
+      <p>
+        No data available for <strong>{table}</strong>.
+      </p>
+    );
   }
 
+  /**
+   * Main component rendering
+   */
   return (
     <div className="table-entries">
       <div>
@@ -75,16 +83,21 @@ function TableEntries({ table }) {
           />
         ))}
         <button
-          onClick={() =>
-            editing
-              ? updateTable(
-                  table,
-                  "edit",
-                  newEntry,
-                  getIdForTable(table, editing)
-                )
-              : updateTable(table, "add", newEntry)
-          }
+          onClick={() => {
+            if (editing) {
+              updateTable(
+                table,
+                "edit",
+                newEntry,
+                getIdForTable(table, editing)
+              );
+            } else {
+              updateTable(table, "add", newEntry);
+            }
+            // Clear out the form or close edit state, if desired
+            setNewEntry({});
+            setEditing(null);
+          }}
         >
           {editing ? "Save" : "Add"}
         </button>
