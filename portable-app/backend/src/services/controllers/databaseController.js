@@ -521,13 +521,30 @@ export const getAllData = (req, res) => {
   }
 };
 
+// 1) Create a lookup/dictionary for primary keys
+const tableKeyMap = {
+  users: "user_id",
+  items: "item_id",
+  projects: "project_id",
+  checkouts: "checkout_id",
+};
+
+// Utility function:
+function getPrimaryKeyForTable(table) {
+  // If the table doesn't exist in our map, you can default to "id"
+  return tableKeyMap[table] || "id";
+}
+
 // Get a single row by ID
 export const getById = (req, res) => {
   const { table, id } = req.params;
 
   try {
     const db = getDatabase();
-    const row = db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(id);
+    const primaryKey = getPrimaryKeyForTable(table);
+    const row = db
+      .prepare(`SELECT * FROM ${table} WHERE ${primaryKey} = ?`)
+      .get(id);
 
     if (!row) {
       return res.status(404).send("Record not found");
@@ -570,6 +587,7 @@ export const createEntry = (req, res) => {
 export const updateEntry = (req, res) => {
   const { table, id } = req.params;
   const data = req.body;
+  console.log("data", data);
 
   try {
     const updates = Object.keys(data)
@@ -578,8 +596,9 @@ export const updateEntry = (req, res) => {
     const values = [...Object.values(data), id];
 
     const db = getDatabase();
+    const primaryKey = getPrimaryKeyForTable(table);
     const result = db
-      .prepare(`UPDATE ${table} SET ${updates} WHERE id = ?`)
+      .prepare(`UPDATE ${table} SET ${updates} WHERE ${primaryKey} = ?`)
       .run(values);
 
     if (result.changes === 0) {

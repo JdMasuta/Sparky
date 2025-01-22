@@ -71,31 +71,13 @@ router.post("/checkouts/detailed/after", getCheckoutsAfterTimestampWithDetails);
 
 // RESTful API
 
+// CRUD operations
+router.get("/:table/:id", getById);
+router.post("/:table", createEntry);
+router.put("/:table/:id", updateEntry);
+router.delete("/:table/:id", deleteEntry);
+
 // General data retrieval
 router.get("/:table", getAllData);
-
-// CRUD operations for users
-router.get("/users/:id", getById);
-router.post("/users", createEntry);
-router.put("/users/:id", updateEntry);
-router.delete("/users/:id", deleteEntry);
-
-// CRUD operations for projects
-router.get("/projects/:id", getById);
-router.post("/projects", createEntry);
-router.put("/projects/:id", updateEntry);
-router.delete("/projects/:id", deleteEntry);
-
-// CRUD operations for items
-router.get("/items/:id", getById);
-router.post("/items", createEntry);
-router.put("/items/:id", updateEntry);
-router.delete("/items/:id", deleteEntry);
-
-// CRUD operations for checkouts
-router.get("/checkouts/:id", getById);
-router.post("/checkouts", createEntry);
-router.put("/checkouts/:id", updateEntry);
-router.delete("/checkouts/:id", deleteEntry);
 
 export default router;
