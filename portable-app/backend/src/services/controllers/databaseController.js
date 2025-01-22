@@ -473,9 +473,6 @@ export const getCheckoutsAfterTimestampWithDetails = (req, res) => {
   }
 };
 
-
-// RESTful CRUD API
-
 // Get all checkouts after a certain timestamp
 export const getCheckoutsAfterTimestamp = (req, res) => {
   const { timestamp } = req.body;
@@ -508,8 +505,6 @@ export const getCheckoutsAfterTimestamp = (req, res) => {
   }
 };
 
-// (Other existing methods are copied here as-is without renaming, for brevity.)
-
 // General CRUD Operations for All Tables
 
 // Get all rows from a table
@@ -539,7 +534,10 @@ export const getById = (req, res) => {
     }
     res.status(200).json(row);
   } catch (error) {
-    console.error(`Error fetching record from table ${table} with ID ${id}:`, error);
+    console.error(
+      `Error fetching record from table ${table} with ID ${id}:`,
+      error
+    );
     res.status(500).send("Internal Server Error");
   }
 };
@@ -552,7 +550,9 @@ export const createEntry = (req, res) => {
   try {
     const db = getDatabase();
     const keys = Object.keys(data).join(", ");
-    const placeholders = Object.keys(data).map(() => "?").join(", ");
+    const placeholders = Object.keys(data)
+      .map(() => "?")
+      .join(", ");
     const values = Object.values(data);
 
     const result = db
@@ -572,7 +572,9 @@ export const updateEntry = (req, res) => {
   const data = req.body;
 
   try {
-    const updates = Object.keys(data).map((key) => `${key} = ?`).join(", ");
+    const updates = Object.keys(data)
+      .map((key) => `${key} = ?`)
+      .join(", ");
     const values = [...Object.values(data), id];
 
     const db = getDatabase();
@@ -586,7 +588,10 @@ export const updateEntry = (req, res) => {
 
     res.status(200).json({ message: "Update successful" });
   } catch (error) {
-    console.error(`Error updating entry in table ${table} with ID ${id}:`, error);
+    console.error(
+      `Error updating entry in table ${table} with ID ${id}:`,
+      error
+    );
     res.status(500).send("Internal Server Error");
   }
 };
@@ -605,7 +610,10 @@ export const deleteEntry = (req, res) => {
 
     res.status(200).json({ message: "Delete successful" });
   } catch (error) {
-    console.error(`Error deleting entry from table ${table} with ID ${id}:`, error);
+    console.error(
+      `Error deleting entry from table ${table} with ID ${id}:`,
+      error
+    );
     res.status(500).send("Internal Server Error");
   }
 };
