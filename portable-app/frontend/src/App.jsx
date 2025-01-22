@@ -8,6 +8,7 @@ import {
 import Report from "./pages/Report.jsx";
 import Home from "./pages/Home.jsx";
 import Checkout from "./pages/Checkout.jsx";
+import Config from "./pages/Config.jsx";
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/report" element={<Report />} />
         <Route path="/checkout" element={<Checkout />} />
+        <Route path="/config" element={<Config />} />
         {/* Add more routes here as needed */}
       </Routes>
     </Router>

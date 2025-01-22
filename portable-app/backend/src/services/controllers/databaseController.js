@@ -472,3 +472,167 @@ export const getCheckoutsAfterTimestampWithDetails = (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 };
+
+// Get all checkouts after a certain timestamp
+export const getCheckoutsAfterTimestamp = (req, res) => {
+  const { timestamp } = req.body;
+
+  if (!timestamp) {
+    return res.status(400).send("Timestamp json parameter is required");
+  }
+
+  try {
+    const db = getDatabase();
+    const rows = db
+      .prepare(
+        `
+        SELECT 
+          checkout_id,
+          user_id,
+          project_id,
+          item_id,
+          quantity,
+          strftime('%Y-%m-%d %H:%M:%S', timestamp) as timestamp 
+        FROM checkouts 
+        WHERE timestamp >= ?`
+      )
+      .all(timestamp);
+
+    res.status(200).send(rows);
+  } catch (error) {
+    console.error("Error fetching checkouts:", error);
+    res.status(500).send("Internal Server Error");
+  }
+};
+
+// General CRUD Operations for All Tables
+
+// Get all rows from a table
+export const getAllData = (req, res) => {
+  const { table } = req.params;
+
+  try {
+    const db = getDatabase();
+    const rows = db.prepare(`SELECT * FROM ${table}`).all();
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error(`Error fetching data from table ${table}:`, error);
+    res.status(500).send("Internal Server Error");
+  }
+};
+
+// 1) Create a lookup/dictionary for primary keys
+const tableKeyMap = {
+  users: "user_id",
+  items: "item_id",
+  projects: "project_id",
+  checkouts: "checkout_id",
+};
+
+// Utility function:
+function getPrimaryKeyForTable(table) {
+  // If the table doesn't exist in our map, you can default to "id"
+  return tableKeyMap[table] || "id";
+}
+
+// Get a single row by ID
+export const getById = (req, res) => {
+  const { table, id } = req.params;
+
+  try {
+    const db = getDatabase();
+    const primaryKey = getPrimaryKeyForTable(table);
+    const row = db
+      .prepare(`SELECT * FROM ${table} WHERE ${primaryKey} = ?`)
+      .get(id);
+
+    if (!row) {
+      return res.status(404).send("Record not found");
+    }
+    res.status(200).json(row);
+  } catch (error) {
+    console.error(
+      `Error fetching record from table ${table} with ID ${id}:`,
+      error
+    );
+    res.status(500).send("Internal Server Error");
+  }
+};
+
+// Create a new entry
+export const createEntry = (req, res) => {
+  const { table } = req.params;
+  const data = req.body;
+
+  try {
+    const db = getDatabase();
+    const keys = Object.keys(data).join(", ");
+    const placeholders = Object.keys(data)
+      .map(() => "?")
+      .join(", ");
+    const values = Object.values(data);
+
+    const result = db
+      .prepare(`INSERT INTO ${table} (${keys}) VALUES (${placeholders})`)
+      .run(values);
+
+    res.status(201).json({ id: result.lastInsertRowid });
+  } catch (error) {
+    console.error(`Error creating entry in table ${table}:`, error);
+    res.status(500).send("Internal Server Error");
+  }
+};
+
+// Update an entry by ID
+export const updateEntry = (req, res) => {
+  const { table, id } = req.params;
+  const data = req.body;
+  console.log("data", data);
+
+  try {
+    const updates = Object.keys(data)
+      .map((key) => `${key} = ?`)
+      .join(", ");
+    const values = [...Object.values(data), id];
+
+    const db = getDatabase();
+    const primaryKey = getPrimaryKeyForTable(table);
+    const result = db
+      .prepare(`UPDATE ${table} SET ${updates} WHERE ${primaryKey} = ?`)
+      .run(values);
+
+    if (result.changes === 0) {
+      return res.status(404).send("Record not found or no changes made");
+    }
+
+    res.status(200).json({ message: "Update successful" });
+  } catch (error) {
+    console.error(
+      `Error updating entry in table ${table} with ID ${id}:`,
+      error
+    );
+    res.status(500).send("Internal Server Error");
+  }
+};
+
+// Delete an entry by ID
+export const deleteEntry = (req, res) => {
+  const { table, id } = req.params;
+
+  try {
+    const db = getDatabase();
+    const result = db.prepare(`DELETE FROM ${table} WHERE id = ?`).run(id);
+
+    if (result.changes === 0) {
+      return res.status(404).send("Record not found");
+    }
+
+    res.status(200).json({ message: "Delete successful" });
+  } catch (error) {
+    console.error(
+      `Error deleting entry from table ${table} with ID ${id}:`,
+      error
+    );
+    res.status(500).send("Internal Server Error");
+  }
+};

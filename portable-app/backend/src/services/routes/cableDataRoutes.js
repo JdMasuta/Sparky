@@ -15,6 +15,12 @@ import {
   getLatestCheckoutsWithDetails,
   getCheckoutStats,
   getCheckoutsAfterTimestampWithDetails,
+  // New RESTful methods
+  getAllData,
+  getById,
+  createEntry,
+  updateEntry,
+  deleteEntry,
 } from "../controllers/databaseController.js";
 
 const router = express.Router();
@@ -62,5 +68,16 @@ router.get("/checkouts/stats", getCheckoutStats);
 
 // Route: Get all checkouts on or after a given timestamp with detailed information
 router.post("/checkouts/detailed/after", getCheckoutsAfterTimestampWithDetails);
+
+// RESTful API
+
+// CRUD operations
+router.get("/:table/:id", getById);
+router.post("/:table", createEntry);
+router.put("/:table/:id", updateEntry);
+router.delete("/:table/:id", deleteEntry);
+
+// General data retrieval
+router.get("/:table", getAllData);
 
 export default router;

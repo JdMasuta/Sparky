@@ -29,6 +29,7 @@ const limiter = rateLimit(securityConfig.rateLimiting);
 
 // Middleware setup
 app.use(limiter);
+
 app.use(
   cors({
     origin: serverConfig.corsOrigin,

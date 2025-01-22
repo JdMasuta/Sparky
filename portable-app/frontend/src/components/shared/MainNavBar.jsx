@@ -8,6 +8,7 @@ const MainNavBar = () => {
     { name: "Home", path: "/home" },
     { name: "Report", path: "/report" },
     { name: "Checkout", path: "/checkout" },
+    { name: "Config", path: "/config" },
     // Add more pages here as needed
   ];
 
