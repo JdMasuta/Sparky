@@ -73,7 +73,7 @@ function useTableData() {
         const response = await fetch(url, {
           method,
           headers: { "Content-Type": "application/json" },
-          // Only include a body for non-DELETE requests
+          // Only include a body for non-DELETE requests, converting to JSON.
           body: operation !== "delete" ? JSON.stringify(entry) : undefined,
         });
 
@@ -87,7 +87,10 @@ function useTableData() {
         const updatedData = await fetchTableData(table);
         setTablesData((prev) => ({ ...prev, [table]: updatedData }));
 
-        console.log(`Table "${table}" updated successfully!`);
+        // !! Add real logging !!
+        console.log(
+          `Table "${table}" updated successfully!: ${operation} on ${id}`
+        );
       } catch (error) {
         console.error(error);
       }
