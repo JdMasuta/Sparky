@@ -6,7 +6,7 @@ import { useCheckoutSubmit } from "../components/entry/useCheckoutSubmit";
 import { useRSLinxMonitor } from "../components/entry/useRSLinxMonitor";
 import { usePLCTags } from "../components/entry/usePLCTags";
 import { useFieldAutomation } from "../components/entry/useFieldAutomation";
-import CheckoutField from "../components/entry/CheckoutField";
+import EntryField from "../components/shared/EntryField.jsx";
 import PullOptionsModal from "../components/entry/PullModal.jsx";
 
 function Checkout() {
@@ -204,7 +204,7 @@ function Checkout() {
           <form className="checkout-form">
             <div className="checkout-fields-horizontal">
               {fields.map((field) => (
-                <CheckoutField
+                <EntryField
                   key={field.name}
                   {...field}
                   value={formData[field.name]}
