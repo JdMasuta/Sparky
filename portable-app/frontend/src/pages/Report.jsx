@@ -4,7 +4,6 @@ import StatCard from "../components/report/StatCard.jsx";
 import CablePullsTable from "../components/report/CablePullsTable.jsx";
 import { useCheckoutData } from "../components/report/useCheckoutData.jsx";
 import FetchPullsData from "../components/report/useFetchPullsData.jsx";
-import logo from "../assets/images/BW Integrated Systems.png";
 import MainNavBar from "../components/shared/MainNavBar.jsx";
 
 function App() {
