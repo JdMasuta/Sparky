@@ -50,7 +50,7 @@ router.get("/item/:id", getItemById);
 router.get("/table_data", getTableData);
 
 // Route: Create a new checkout
-router.post("/checkout", createCheckout);
+router.post("/checkout/old", createCheckout);
 
 // Route: Create a new project
 router.post("/project", createProject);
