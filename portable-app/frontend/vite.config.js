@@ -5,7 +5,7 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   build: {
-    outDir: "../backend/public", // Build directly to backend's public folder
+    outDir: "../backend/src/public", // Build directly to backend's public folder
     emptyOutDir: true,
   },
   server: {
