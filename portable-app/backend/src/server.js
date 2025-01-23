@@ -33,14 +33,14 @@ app.use(limiter);
 app.use(
   cors({
     origin: serverConfig.corsOrigin,
-    ...securityConfig.cors,
+    credentials: true,
   })
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use("/api", cableDataRoutes);
 app.use("/api/rslinx", RSLinxRoutes);
 app.use("/api/email", emailRoutes);
+app.use("/api", cableDataRoutes);
 
 // Serve static files from the frontend/dist directory
 // app.use(express.static(join(currentDirPath, "../../frontend/dist")));
