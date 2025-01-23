@@ -53,10 +53,12 @@ export const useCheckoutSubmit = (formData, idMappings, setFormData) => {
       };
 
       // Handle null quantity by fetching backup
-      checkoutData.quantity = await getQuantity(checkoutData.quantity);
+      if (checkoutData.quantity === null) {
+        checkoutData.quantity = await getQuantity(checkoutData.quantity);
+      }
 
       console.log("Submitting checkout:", JSON.stringify(checkoutData));
-      const response = await fetch("http://localhost:3000/api/checkout", {
+      const response = await fetch("http://localhost:3000/api/checkout/old", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -68,7 +70,7 @@ export const useCheckoutSubmit = (formData, idMappings, setFormData) => {
         throw new Error("Failed to submit checkout");
       }
 
-      alert("Checkout submitted successfully!");
+      // alert("Checkout submitted successfully!");
       resetForm(); // Reset form on successful submission
       return true;
     } catch (error) {
