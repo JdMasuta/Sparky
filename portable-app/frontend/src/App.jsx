@@ -1,6 +1,6 @@
 import React from "react";
 import {
-  BrowserRouter as Router,
+  HashRouter as Router,
   Route,
   Routes,
   Navigate,
@@ -12,7 +12,7 @@ import Config from "./pages/Config.jsx";
 
 function App() {
   return (
-    <Router>
+    <Router basename="/" hashType="noslash">
       <Routes>
         <Route path="/" element={<Navigate to="/home" />} />
         <Route path="/home" element={<Home />} />
