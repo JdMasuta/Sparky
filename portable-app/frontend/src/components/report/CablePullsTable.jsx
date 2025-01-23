@@ -5,25 +5,8 @@ const CablePullsTable = ({ initialData }) => {
   const [data, setData] = useState(initialData || []);
 
   useEffect(() => {
-    console.log("Initial data:", initialData);
     setData(initialData);
   }, [initialData]);
-
-  useEffect(() => {
-    console.log("State data:", data);
-  }, [data]);
-
-  const addEntry = (entry) => {
-    setData([...data, entry]);
-  };
-
-  const removeEntry = (index) => {
-    setData(data.filter((_, i) => i !== index));
-  };
-
-  const updateEntry = (index, entry) => {
-    setData(data.map((item, i) => (i === index ? entry : item)));
-  };
 
   return (
     <div className="table-container">
