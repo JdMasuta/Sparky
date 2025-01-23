@@ -160,13 +160,6 @@ function Checkout() {
     await handleSubmit(new Event("submit"));
   };
 
-  const handleKeyDown = (event) => {
-    if (event.key === "Enter") {
-      handlePullClick();
-      console.log("Enter");
-    }
-  };
-
   const fields = [
     {
       label: "Name",
