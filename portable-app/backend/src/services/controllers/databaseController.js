@@ -105,6 +105,10 @@ export const getCheckoutById = (req, res) => {
 // Method: Create a new checkout
 export const createCheckout = (req, res) => {
   const checkoutData = req.body;
+  if (checkoutData.quantity === null) {
+    console.error("Quantity cannot be 'null'");
+    res.status(418).send("null quantity in checkout");
+  }
 
   try {
     const db = getDatabase();
@@ -622,7 +626,9 @@ export const deleteEntry = (req, res) => {
   try {
     const db = getDatabase();
     const primaryKey = getPrimaryKeyForTable(table);
-    const result = db.prepare(`DELETE FROM ${table} WHERE ${primaryKey} = ?`).run(id);
+    const result = db
+      .prepare(`DELETE FROM ${table} WHERE ${primaryKey} = ?`)
+      .run(id);
 
     if (result.changes === 0) {
       return res.status(404).send("Record not found");
