@@ -5,6 +5,21 @@ export const useRSLinxMonitor = () => {
   const [error, setError] = useState(null);
   const sessionIdRef = useRef(null);
 
+  const checkConnection = async () => {
+    try {
+      const response = await fetch("/api/RSLinx/status");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error checking connection:", error);
+      setDDEconnected(false);
+      return { ok: false, message: error.message };
+    }
+  };
+
   const startMonitoring = async (onQuantityReceived) => {
     const sessionId = `session-${Date.now()}`;
     sessionIdRef.current = sessionId;
@@ -66,6 +81,7 @@ export const useRSLinxMonitor = () => {
   return {
     startMonitoring,
     stopMonitoring,
+    checkConnection,
     isMonitoring,
     error,
   };
