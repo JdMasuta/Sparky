@@ -41,9 +41,12 @@ export const useCheckoutForm = (options) => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    let parsedValue = name === "quantity" ? parseFloat(value) : value; // Parse as number
+    parsedValue === NaN ? 0 : parsedValue;
+
     setFormData((prevData) => ({
       ...prevData,
-      [name]: value,
+      [name]: parsedValue,
       // Clear subsequent fields when a previous field changes
       ...(name === "name" && { project: "", item: "", quantity: "" }),
       ...(name === "project" && { item: "", quantity: "" }),
