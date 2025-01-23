@@ -15,6 +15,7 @@ export const serverConfig = {
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://10.16.49.1:5173",
+        "http://localhost:3000",
       ],
   environment: process.env.NODE_ENV || "development",
   paths: {

@@ -3,6 +3,9 @@ import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import cron from "node-cron";
+import path from "path";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
 import { promises as fs } from "fs";
 import { initializeDatabase, closeDatabase } from "./init/db.init.js";
 import {
@@ -14,6 +17,9 @@ import RSLinxRoutes from "./services/routes/RSLinxRoutes.js";
 import emailRoutes from "./services/routes/emailRoutes.js";
 import errorHandler from "./services/middleware/errorHandler.js";
 import { sendCheckoutReport } from "./services/controllers/emailController.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 
@@ -42,13 +48,13 @@ app.use("/api/rslinx", RSLinxRoutes);
 app.use("/api/email", emailRoutes);
 app.use("/api", cableDataRoutes);
 
-// Serve static files from the frontend/dist directory
-// app.use(express.static(join(currentDirPath, "../../frontend/dist")));
+// Serve static files from the public directory
+app.use(express.static(path.join(__dirname, "public")));
 
 // Handle React routing by serving index.html for all unmatched routes
-// app.get("*", (req, res) => {
-//   res.sendFile(join(currentDirPath, "../../frontend/dist/index.html"));
-// });
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
 app.use(errorHandler);
 
@@ -132,7 +138,7 @@ const startServer = async () => {
     });
 
     // Start server
-    const server = app.listen(serverConfig.port, async () => {
+    const server = app.listen(serverConfig.port, "0.0.0.0", async () => {
       const startMessage = `${new Date().toISOString()} Server running in ${
         serverConfig.environment
       } mode on port ${serverConfig.port}\n`;
