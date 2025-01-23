@@ -621,7 +621,8 @@ export const deleteEntry = (req, res) => {
 
   try {
     const db = getDatabase();
-    const result = db.prepare(`DELETE FROM ${table} WHERE id = ?`).run(id);
+    const primaryKey = getPrimaryKeyForTable(table);
+    const result = db.prepare(`DELETE FROM ${table} WHERE ${primaryKey} = ?`).run(id);
 
     if (result.changes === 0) {
       return res.status(404).send("Record not found");
