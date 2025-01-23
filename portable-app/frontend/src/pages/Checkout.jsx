@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import MainNavBar from "../components/shared/MainNavBar.jsx";
-import Modal from "../components/shared/Modal.jsx";
 import { useCheckoutForm } from "../components/entry/useCheckoutForm";
 import { useCheckoutData } from "../components/entry/useCheckoutData";
 import { useCheckoutSubmit } from "../components/entry/useCheckoutSubmit";
@@ -25,11 +24,13 @@ function Checkout() {
     idMappings,
     setFormData
   );
-  const { startMonitoring, stopMonitoring, isMonitoring } = useRSLinxMonitor();
+  const { startMonitoring, stopMonitoring, checkConnection, isMonitoring } =
+    useRSLinxMonitor();
   const { writeToPLC, resetStepInPLC } = usePLCTags();
   const { fieldRefs, focusNextField } = useFieldAutomation();
 
   const [isFirstLoad, setIsFirstLoad] = useState(true); // Track first load
+  const [DDEconnected, setDDEconnected] = useState(false); // Track DDE connection
 
   const optionKeyMap = {
     name: "users",
@@ -40,13 +41,28 @@ function Checkout() {
 
   // Focus the first field only on initial page load
   useEffect(() => {
-    if (isFirstLoad && fieldRefs.name) {
-      const status = fetch("/api/RSLinx/status"); // Check the connection status
-      console.log("Connection status:", status);
-      fieldRefs.name.current.focus(); // Focus the first field (name)
-      resetStepInPLC(); // Reset the step number in PLC
-      async () => {
-        fetch("/api/RSLinx/batch/write", {
+    const ensureDDEConnection = async () => {
+      try {
+        const data = await checkConnection(); // Await the checkConnection call
+        console.log("Connection status:", {
+          available: data.available,
+          message: data.message,
+        });
+        setDDEconnected(data.available);
+      } catch (error) {
+        console.error("Error ensuring DDE connection:", error);
+        setDDEconnected(false);
+      }
+    };
+
+    const initializePage = async () => {
+      if (isFirstLoad && fieldRefs.name) {
+        await ensureDDEConnection(); // Await the ensureDDEConnection call
+
+        fieldRefs.name.current.focus(); // Focus the first field (name)
+        resetStepInPLC(); // Reset the step number in PLC
+
+        await fetch("/api/RSLinx/batch/write", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -60,9 +76,12 @@ function Checkout() {
             values: ["", "", ""],
           }),
         });
-      };
-      setIsFirstLoad(false); // Set flag to prevent further focus
-    }
+
+        setIsFirstLoad(false); // Set flag to prevent further focus
+      }
+    };
+
+    initializePage(); // Call the async function
   }, [isFirstLoad, fieldRefs]);
 
   const handleFieldChange = async (e) => {
@@ -89,8 +108,9 @@ function Checkout() {
 
     // Proceed with PLC writing for valid selections or fields without options
     if (
-      !fieldHasOptions ||
-      (fieldHasOptions && isValidSelection(value, currentOptions))
+      name != "options" &&
+      (!fieldHasOptions ||
+        (fieldHasOptions && isValidSelection(value, currentOptions)))
     ) {
       const success = await writeToPLC(name, value);
       console.log(`PLC write success for ${name}: ${success}`);
@@ -124,6 +144,7 @@ function Checkout() {
     const success = await submitCheckout(e);
     if (success) {
       await resetStepInPLC();
+      fieldRefs.name.current.focus(); // Focus the first field (name)
     }
   };
 
@@ -137,7 +158,13 @@ function Checkout() {
 
     setShowPullModal(false);
     await handleSubmit(new Event("submit"));
-    resetForm();
+  };
+
+  const handleKeyDown = (event) => {
+    if (event.key === "Enter") {
+      handlePullClick();
+      console.log("Enter");
+    }
   };
 
   const fields = [
@@ -189,6 +216,10 @@ function Checkout() {
                   {...field}
                   value={formData[field.name]}
                   onChange={handleFieldChange}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && field.name == "quantity")
+                      handlePullClick();
+                  }}
                   showField={shouldShowField(field.name)}
                 />
               ))}
