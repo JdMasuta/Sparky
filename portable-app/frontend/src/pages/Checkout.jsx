@@ -113,7 +113,7 @@ function Checkout() {
         (fieldHasOptions && isValidSelection(value, currentOptions)))
     ) {
       const success = await writeToPLC(name, value);
-      console.log(`PLC write success for ${name}: ${success}`);
+      console.log(`PLC write success for ${name}: ${value} ${success}`);
       if (success) {
         focusNextField(name);
       }
