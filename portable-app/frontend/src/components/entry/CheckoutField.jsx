@@ -8,6 +8,7 @@ const CheckoutField = forwardRef(
       name,
       value,
       onChange,
+      onKeyDown,
       placeholder,
       options = [],
       pattern,
@@ -35,6 +36,7 @@ const CheckoutField = forwardRef(
           name={name}
           value={fieldValue}
           onChange={onChange}
+          onKeyDown={onKeyDown}
           onInput={(e) => {
             onChange(e);
             // If the value matches an option exactly, treat it as a selection
