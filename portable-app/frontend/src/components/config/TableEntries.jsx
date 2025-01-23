@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import useTableData from "./useTableData.jsx";
+import EntryField from "../shared/EntryField.jsx"; // Import the EntryField component
 
 // This object maps each table name to its primary key field
 const tableKeyMap = {
@@ -17,46 +18,55 @@ function getIdForTable(table, entry) {
 }
 
 function TableEntries({ table }) {
-  const {
-    tablesData,
-    updateTable,
-    preloadTables,
-    // fetchTableData, // Not needed if we always rely on preloaded data
-    // setTablesData,  // Not needed for normal usage here unless you have special cases
-  } = useTableData();
+  const { tablesData, updateTable, preloadTables } = useTableData();
 
-  const [newEntry, setNewEntry] = useState({});
-  const [editing, setEditing] = useState(null);
+  const [editing, setEditing] = useState(null); // Track which row is being edited (by ID)
+  const [editedEntry, setEditedEntry] = useState({}); // Track changes to the edited entry
   const entries = tablesData[table] || []; // Ensure entries is always an array
 
   const [isPreloaded, setIsPreloaded] = useState(false);
 
   /**
    * Preload ALL tables once on mount, if not already preloaded.
-   * After this, we should have `tablesData` for every table in your app,
-   * including the one specified by `table`.
    */
   useEffect(() => {
     if (!isPreloaded) {
       console.log("Preloading all tables...");
       preloadTables().then(() => setIsPreloaded(true));
     }
-    // Only run once (or until isPreloaded = true)
   }, [isPreloaded, preloadTables]);
 
   /**
-   * Handle form input for adding/editing an entry
+   * Handle input changes for the edited entry
    */
   const handleInputChange = (e) => {
-    setNewEntry((prev) => ({
+    const { name, value } = e.target;
+    setEditedEntry((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [name]: value,
     }));
   };
 
   /**
+   * Start editing a specific entry
+   */
+  const startEditing = (entry) => {
+    setEditing(getIdForTable(table, entry)); // Set the ID of the entry being edited
+    setEditedEntry(entry); // Populate the editedEntry state with the entry's data
+  };
+
+  /**
+   * Save the edited entry
+   */
+  const saveEditedEntry = () => {
+    updateTable(table, "edit", editedEntry, editing);
+    setEditing(null); // Exit edit mode
+    setEditedEntry({}); // Clear the edited entry
+  };
+
+  /**
    * Early return if there's truly no data (empty array) for this table
-   * or if preload hasn't happened yet. You can adjust this condition as needed.
+   * or if preload hasn't happened yet.
    */
   if (!entries.length) {
     return (
@@ -71,38 +81,6 @@ function TableEntries({ table }) {
    */
   return (
     <div className="table-entries">
-      <div>
-        <h4>{editing ? "Edit Entry" : "Add Entry"}</h4>
-        {Object.keys(entries[0] || {}).map((field) => (
-          <input
-            key={field}
-            name={field}
-            placeholder={field}
-            value={newEntry[field] || ""}
-            onChange={handleInputChange}
-          />
-        ))}
-        <button
-          onClick={() => {
-            if (editing) {
-              updateTable(
-                table,
-                "edit",
-                newEntry,
-                getIdForTable(table, editing)
-              );
-            } else {
-              updateTable(table, "add", newEntry);
-            }
-            // Clear out the form or close edit state, if desired
-            setNewEntry({});
-            setEditing(null);
-          }}
-        >
-          {editing ? "Save" : "Add"}
-        </button>
-      </div>
-
       <h3>{table.charAt(0).toUpperCase() + table.slice(1)} Entries</h3>
       <table>
         <thead>
@@ -113,28 +91,55 @@ function TableEntries({ table }) {
           </tr>
         </thead>
         <tbody>
-          {entries.map((entry) => (
-            <tr key={getIdForTable(table, entry)}>
-              {Object.values(entry).map((value, idx) => (
-                <td key={idx}>{value}</td>
-              ))}
-              <td>
-                <button onClick={() => setEditing(entry)}>Edit</button>
-                <button
-                  onClick={() =>
-                    updateTable(
-                      table,
-                      "delete",
-                      null,
-                      getIdForTable(table, entry)
-                    )
-                  }
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
+          {entries.map((entry) => {
+            const entryId = getIdForTable(table, entry);
+            const isEditing = editing === entryId;
+
+            return (
+              <tr key={entryId}>
+                {Object.entries(entry).map(([key, value]) => (
+                  <td key={key}>
+                    {isEditing ? (
+                      <EntryField
+                        name={key}
+                        value={editedEntry[key] || ""}
+                        onChange={handleInputChange}
+                        placeholder={key}
+                      />
+                    ) : (
+                      value
+                    )}
+                  </td>
+                ))}
+                <td>
+                  {isEditing ? (
+                    <>
+                      <button onClick={saveEditedEntry}>Save</button>
+                      <button
+                        onClick={() => {
+                          setEditing(null); // Cancel edit mode
+                          setEditedEntry({}); // Clear the edited entry
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={() => startEditing(entry)}>Edit</button>
+                      <button
+                        onClick={() =>
+                          updateTable(table, "delete", null, entryId)
+                        }
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
