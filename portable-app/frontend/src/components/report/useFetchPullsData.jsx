@@ -7,7 +7,7 @@ const FetchPullsData = ({ setTodaysPulls, setWeeksPulls }) => {
   useEffect(() => {
     const fetchData = createDebounce(async (signal) => {
       const today = new Date();
-      const midnightToday = new Date(today.setUTCHours(0, 0, 0, 0))
+      const midnightToday = new Date(today.setHours(0, 0, 0, 0))
         .toISOString()
         .slice(0, 19)
         .replace("T", " ");
@@ -35,7 +35,6 @@ const FetchPullsData = ({ setTodaysPulls, setWeeksPulls }) => {
         }).then((res) => res.json()),
       ]);
 
-      console.log(todaysData);
       setTodaysPulls(todaysData.length);
       setWeeksPulls(weeksData.length);
     }, 1000);
