@@ -40,11 +40,6 @@ function App() {
             value="N/A"
             subtitle="Currently in progress"
           />
-          <StatCard
-            title="Pending Audit"
-            value="N/A"
-            subtitle="Requires review"
-          />
           <StatCard title="Alerts" value="N/A" subtitle="Require Attention" />
         </div>
         <CablePullsTable initialData={initialData} />
