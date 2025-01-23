@@ -1,7 +1,7 @@
-// ../components/entry/CheckoutField.jsx
+// ../components/shared/CheckoutField.jsx
 import React, { forwardRef } from "react";
 
-const CheckoutField = forwardRef(
+const EntryField = forwardRef(
   (
     {
       label,
@@ -64,6 +64,6 @@ const CheckoutField = forwardRef(
 );
 
 // Add display name for debugging purposes
-CheckoutField.displayName = "CheckoutField";
+EntryField.displayName = "CheckoutField";
 
-export default CheckoutField;
+export default EntryField;
