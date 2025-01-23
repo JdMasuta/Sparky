@@ -1,3 +1,4 @@
+import { use } from "react";
 import { useState, useRef } from "react";
 
 export const useRSLinxMonitor = () => {
@@ -15,7 +16,6 @@ export const useRSLinxMonitor = () => {
       return data;
     } catch (error) {
       console.error("Error checking connection:", error);
-      setDDEconnected(false);
       return { ok: false, message: error.message };
     }
   };
