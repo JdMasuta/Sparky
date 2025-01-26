@@ -108,7 +108,7 @@ function Checkout() {
 
     // Proceed with PLC writing for valid selections or fields without options
     if (
-      name != "options" &&
+      name != "quantity" &&
       (!fieldHasOptions ||
         (fieldHasOptions && isValidSelection(value, currentOptions)))
     ) {
@@ -121,10 +121,29 @@ function Checkout() {
 
     // Re-enable the input field after the PLC write
     e.target.disabled = false;
+
+    if (name == "items") {
+      startMonitoring(async (quantity) => {
+        setFormData((prev) => ({
+          ...prev,
+          quantity: quantity.toString(),
+        }));
+        const success = await submitCheckout(new Event("submit"));
+        if (success) {
+          await resetStepInPLC();
+          setShowPullModal(false);
+          resetForm();
+        }
+      });
+    }
   };
 
   const handlePullClick = () => {
     setShowPullModal(true);
+    if (isMonitoring) {
+      console.log("Already monitoring!");
+      return;
+    }
     startMonitoring(async (quantity) => {
       setFormData((prev) => ({
         ...prev,
