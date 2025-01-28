@@ -225,16 +225,19 @@ export const getProjectById = (req, res) => {
   }
 };
 
-// Method: Generate checkout report by timestamp
+// Method: Generate checkout report by timestamp range
 export const generateCheckoutReport = (req, res) => {
-  const { timestamp } = req.body;
+  const { startDate, endDate } = req.body;
 
-  if (!timestamp) {
-    return res.status(400).send("Timestamp parameter is required");
+  // Validate input
+  if (!startDate || !endDate) {
+    return res.status(400).send("Both start and stop timestamps are required");
   }
 
   try {
     const db = getDatabase();
+
+    // Query to fetch data between the specified timestamps
     const rows = db
       .prepare(
         `
@@ -250,22 +253,25 @@ export const generateCheckoutReport = (req, res) => {
       JOIN 
         items i ON c.item_id = i.item_id
       WHERE 
-        c.timestamp >= ?
+        c.timestamp >= ? AND c.timestamp <= ?
       GROUP BY 
         p.project_number, i.sku, i.name
       ORDER BY 
         p.project_number, i.sku, i.name`
       )
-      .all(timestamp);
+      .all(startDate, endDate); // Pass both timestamps as parameters
 
+    // Handle case where no data is found
     if (rows.length === 0) {
       return res
         .status(404)
         .send("No data found for the specified time period");
     }
 
+    // Return the report data
     res.status(200).json({
-      timestamp: timestamp,
+      startDate: startDate,
+      endDate: endDate,
       total_records: rows.length,
       data: rows,
     });

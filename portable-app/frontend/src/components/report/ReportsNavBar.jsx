@@ -4,7 +4,8 @@ import CheckoutReport from "./CheckoutReportDashboard.jsx";
 import Modal from "../shared/Modal.jsx";
 
 const NavBar = () => {
-  const [date, setDate] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [reportData, setReportData] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -14,7 +15,7 @@ const NavBar = () => {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ timestamp: date }),
+      body: JSON.stringify({ startDate, endDate }),
     });
     const data = await response.json();
     setReportData(data);
@@ -23,15 +24,20 @@ const NavBar = () => {
 
   return (
     <div>
-      <br>
-      </br>
+      <br />
       <nav className="nav">
         <div className="nav-content">
           <h1>BW Cable Audit System</h1>
           <input
             type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="date-input"
+          />
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
             className="date-input"
           />
           <button
