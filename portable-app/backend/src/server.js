@@ -97,8 +97,8 @@ const formatTimestamp = (date) => {
 
 // Weekly Cron Job
 // Cron format: minute hour day month day_of_week
-cron.schedule("0 5 * * 1", async () => {
-  // Every Friday at 9:00 AM
+cron.schedule("30 15 * * 5", async () => {
+  // Every Friday at 3:30 PM
   console.log("Starting weekly report job...");
 
   try {

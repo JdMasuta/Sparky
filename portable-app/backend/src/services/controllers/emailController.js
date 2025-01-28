@@ -5,7 +5,6 @@ import cron from "node-cron";
 import { Parser } from "json2csv";
 import emailConfig from "../config/email.config.js";
 import { generateHTMLTable } from "../templates/report.js";
-import config from "../config/rslinx.config.js";
 
 // Initialize the transporter outside of the request handlers but wrap it in a function
 // to prevent immediate connection attempts during module loading
