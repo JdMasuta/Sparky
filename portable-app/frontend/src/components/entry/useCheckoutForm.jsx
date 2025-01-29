@@ -18,6 +18,11 @@ export const useCheckoutForm = (options) => {
     return optionsArray.includes(value);
   };
 
+  const isValidQuantity = (value) => {
+    console.log(typeof value);
+    return 1;
+  };
+
   const shouldShowField = (fieldName) => {
     switch (fieldName) {
       case "name":
@@ -90,6 +95,7 @@ export const useCheckoutForm = (options) => {
     shouldShowField,
     handleInputChange,
     isValidSelection,
+    isValidQuantity,
     refs: {
       projectInputRef,
       itemInputRef,
