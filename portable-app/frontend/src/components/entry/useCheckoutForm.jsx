@@ -18,6 +18,11 @@ export const useCheckoutForm = (options) => {
     return optionsArray.includes(value);
   };
 
+  const isInvalidQuantity = (value) => {
+    console.log(typeof parseFloat(value), value);
+    return parseFloat(value) > 0.0 && value != "NaN" ? false : true;
+  };
+
   const shouldShowField = (fieldName) => {
     switch (fieldName) {
       case "name":
@@ -42,7 +47,8 @@ export const useCheckoutForm = (options) => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     let parsedValue = name === "quantity" ? parseFloat(value) : value; // Parse as number
-    parsedValue == NaN ? 0 : parsedValue;
+    parsedValue =
+      name === "quantity" && isNaN(parsedValue) ? "NaN" : parsedValue;
 
     setFormData((prevData) => ({
       ...prevData,
@@ -90,6 +96,7 @@ export const useCheckoutForm = (options) => {
     shouldShowField,
     handleInputChange,
     isValidSelection,
+    isInvalidQuantity,
     refs: {
       projectInputRef,
       itemInputRef,

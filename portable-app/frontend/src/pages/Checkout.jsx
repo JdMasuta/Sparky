@@ -18,6 +18,7 @@ function Checkout() {
     shouldShowField,
     handleInputChange,
     isValidSelection,
+    isInvalidQuantity,
   } = useCheckoutForm(options);
   const { handleSubmit: submitCheckout, resetForm } = useCheckoutSubmit(
     formData,
@@ -119,10 +120,7 @@ function Checkout() {
       }
     }
 
-    // Re-enable the input field after the PLC write
-    e.target.disabled = false;
-
-    if (name == "items") {
+    if (name == "item") {
       startMonitoring(async (quantity) => {
         setFormData((prev) => ({
           ...prev,
@@ -136,6 +134,9 @@ function Checkout() {
         }
       });
     }
+
+    // Re-enable the input field after the PLC write
+    e.target.disabled = false;
   };
 
   const handlePullClick = () => {
@@ -230,7 +231,7 @@ function Checkout() {
                   onChange={handleFieldChange}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && field.name == "quantity")
-                      handlePullClick();
+                      handleManualEntry();
                   }}
                   showField={shouldShowField(field.name)}
                 />
@@ -241,11 +242,11 @@ function Checkout() {
               {shouldShowField("item") && formData.item && (
                 <button
                   type="button"
-                  className="pull-button"
-                  onClick={handlePullClick}
-                  disabled={isMonitoring}
+                  className="manual-checkout-button"
+                  onClick={handleManualEntry}
+                  disabled={isInvalidQuantity(formData.quantity)}
                 >
-                  Pull
+                  Manual Entry
                 </button>
               )}
             </div>
