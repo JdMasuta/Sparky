@@ -18,7 +18,7 @@ function Checkout() {
     shouldShowField,
     handleInputChange,
     isValidSelection,
-    isValidQuantity,
+    isInvalidQuantity,
   } = useCheckoutForm(options);
   const { handleSubmit: submitCheckout, resetForm } = useCheckoutSubmit(
     formData,
@@ -244,7 +244,7 @@ function Checkout() {
                   type="button"
                   className="manual-checkout-button"
                   onClick={handleManualEntry}
-                  disabled={isValidQuantity}
+                  disabled={isInvalidQuantity(formData.quantity)}
                 >
                   Manual Entry
                 </button>
