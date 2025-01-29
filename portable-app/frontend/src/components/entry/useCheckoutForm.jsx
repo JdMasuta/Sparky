@@ -19,7 +19,6 @@ export const useCheckoutForm = (options) => {
   };
 
   const isInvalidQuantity = (value) => {
-    console.log(typeof parseFloat(value), value);
     return parseFloat(value) > 0.0 && value != "NaN" ? false : true;
   };
 
