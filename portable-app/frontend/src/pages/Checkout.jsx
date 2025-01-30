@@ -8,6 +8,7 @@ import { usePLCTags } from "../components/entry/usePLCTags";
 import { useFieldAutomation } from "../components/entry/useFieldAutomation";
 import EntryField from "../components/shared/EntryField.jsx";
 import PullOptionsModal from "../components/entry/PullModal.jsx";
+import { useLocation } from "react-router-dom";
 
 function Checkout() {
   const [showPullModal, setShowPullModal] = useState(false);
@@ -64,6 +65,7 @@ function Checkout() {
     const initializePage = async () => {
       if (isFirstLoad && fieldRefs.name) {
         await ensureDDEConnection(); // Await the ensureDDEConnection call\
+        stopAllMonitoring();
 
         fieldRefs.name.current.focus(); // Focus the first field (name)
         resetStepInPLC(); // Reset the step number in PLC
@@ -92,17 +94,8 @@ function Checkout() {
 
   useEffect(() => {
     const handleBeforeUnload = (event) => {
-      console.log("RELOADING 🔫");
-      const message = "alerting";
-      alert("pause");
-      if (isMonitoring) {
+      if (isMonitoring || true) {
         stopAllMonitoring();
-        event.preventDefault();
-        event.returnValue = message;
-      } else {
-        alert("Not Monitoring");
-        event.preventDefault();
-        event.returnValue = message;
       }
     };
 
@@ -111,7 +104,7 @@ function Checkout() {
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  });
+  }, [isMonitoring, stopAllMonitoring]);
 
   const handleFieldChange = async (e) => {
     const { name, value } = e.target;
