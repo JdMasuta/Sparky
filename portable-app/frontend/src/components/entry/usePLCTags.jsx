@@ -78,9 +78,37 @@ export const usePLCTags = () => {
     }
   };
 
+  const resetPLCvalues = async () => {
+    try {
+      // Send a POST request to clear string data
+      response = await fetch("/api/RSLinx/batch/write", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tags: [
+            "_200_GLB.StringData[0]",
+            "_200_GLB.StringData[1]",
+            "_200_GLB.StringData[2]",
+          ],
+          values: ["", "", ""],
+        }),
+        signal: controller.signal, // Use the AbortController signal
+      });
+      await response.json();
+      setError(null);
+      return true;
+    } catch (error) {
+      setError(error.message);
+      return false;
+    }
+  };
+
   return {
     writeToPLC,
     resetStepInPLC,
+    resetPLCvalues,
     error,
   };
 };
