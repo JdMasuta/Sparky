@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import MainNavBar from "../components/shared/MainNavBar.jsx";
 import useAlerts from "../components/shared/Alerts/useAlerts";
 import { useCheckoutForm } from "../components/entry/useCheckoutForm";
@@ -34,11 +34,10 @@ function Checkout() {
     checkConnection,
     isMonitoring,
   } = useRSLinxMonitor();
-  const { writeToPLC, resetStepInPLC } = usePLCTags();
+  const { writeToPLC, resetStepInPLC, resetPLCvalues } = usePLCTags();
   const { fieldRefs, focusNextField } = useFieldAutomation();
 
   const [isFirstLoad, setIsFirstLoad] = useState(true); // Track first load
-  const [DDEconnected, setDDEconnected] = useState(false); // Track DDE connection
 
   const optionKeyMap = {
     name: "users",
@@ -58,46 +57,30 @@ function Checkout() {
           available: data.available,
           message: data.message,
         });
-        setDDEconnected(data.available);
+        return data.available;
       } catch (error) {
         // Only log errors that aren't caused by an abort
         if (error.name !== "AbortError") {
           console.error("Error ensuring DDE connection:", error);
         }
-        setDDEconnected(false);
       }
     };
 
     const initializePage = async () => {
       if (isFirstLoad && fieldRefs.name) {
         try {
-          await ensureDDEConnection(); // Make sure connection is established
+          setIsFirstLoad(false); // Prevent further re-initialization
+
+          const connection = await ensureDDEConnection(); // Make sure connection is established
           stopAllMonitoring();
 
           fieldRefs.name.current.focus(); // Focus the name field
           resetStepInPLC(); // Reset the step in the PLC
+          resetPLCvalues(); // Reset the values for name, project, item
 
-          // Send a POST request to clear string data
-          await fetch("/api/RSLinx/batch/write", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              tags: [
-                "_200_GLB.StringData[0]",
-                "_200_GLB.StringData[1]",
-                "_200_GLB.StringData[2]",
-              ],
-              values: ["", "", ""],
-            }),
-            signal: controller.signal, // Use the AbortController signal
-          });
-
-          setIsFirstLoad(false); // Prevent further re-initialization
           const connectionStatus = [
-            DDEconnected === true ? "connected" : "not connected...",
-            DDEconnected === true ? "success" : "error",
+            connection === true ? "connected" : "not connected...",
+            connection === true ? "success" : "error",
           ];
           addAlert({
             message: `RSLinx is ${connectionStatus[0]}`,
@@ -131,6 +114,9 @@ function Checkout() {
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isMonitoring, stopAllMonitoring]);
+
+  const hasHandledAutoLogic = useRef(false);
+  const hasHandledManualEntry = useRef(false);
 
   const handleFieldChange = async (e) => {
     const { name, value } = e.target;
@@ -167,51 +153,68 @@ function Checkout() {
       }
     }
 
-    if (name == "item") {
-      startMonitoring(async (quantity) => {
-        setFormData((prev) => ({
-          ...prev,
-          quantity: quantity.toString(),
-        }));
-        const success = await submitCheckout(new Event("submit"));
-        if (success) {
-          await resetStepInPLC();
-          setShowPullModal(false);
-          resetForm();
+    // Re-enable the input field after the PLC write
+    e.target.disabled = false;
+
+    if (
+      name === "item" &&
+      isValidSelection(value, options.items) &&
+      !hasHandledAutoLogic.current
+    ) {
+      hasHandledAutoLogic.current = true;
+      await handleAutoLogic();
+    }
+  };
+
+  const handleAutoLogic = async (e) => {
+    if (!isMonitoring) {
+      await startMonitoring(async (quantity) => {
+        // If manual entry is triggered, skip or early return
+        if (hasHandledManualEntry.current) {
+          console.log("Manual entry triggered; skipping auto logic");
+          return;
+        }
+        if (!isNaN(formData.quantity)) {
+          setFormData((prev) => ({
+            ...prev,
+            quantity: quantity.toString(),
+          }));
+          if (isMonitoring) {
+            stopAllMonitoring();
+          }
+          // Once formData is set, you then call your handleSubmit
+          handleSubmit(new Event("submit"));
         }
       });
     }
-
-    // Re-enable the input field after the PLC write
-    e.target.disabled = false;
   };
 
-  const handlePullClick = () => {
-    setShowPullModal(true);
-    if (isMonitoring) {
-      console.log("Already monitoring!");
-      return;
-    }
-    startMonitoring(async (quantity) => {
-      setFormData((prev) => ({
-        ...prev,
-        quantity: quantity.toString(),
-      }));
-      const success = await submitCheckout(new Event("submit"));
-      if (success) {
-        await resetStepInPLC();
-        setShowPullModal(false);
-        resetForm();
-      }
-    });
-  };
+  // const handlePullClick = () => {
+  //   setShowPullModal(true);
+  //   if (isMonitoring) {
+  //     console.log("Already monitoring!");
+  //     return;
+  //   }
+  //   startMonitoring(async (quantity) => {
+  //     setFormData((prev) => ({
+  //       ...prev,
+  //       quantity: quantity.toString(),
+  //     }));
+  //     const success = await submitCheckout(new Event("submit"));
+  //     if (success) {
+  //       await resetStepInPLC();
+  //       setShowPullModal(false);
+  //       resetForm();
+  //     }
+  //   });
+  // };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const success = await submitCheckout(e);
     if (success) {
       addAlert({
-        message: "Checkout submission successful!",
+        message: `Checkout submission successful!\nQuantity: ${formData.quantity}`,
         severity: "success",
         timeout: 5,
       });
@@ -224,17 +227,20 @@ function Checkout() {
         timeout: 5,
       });
     }
+    hasHandledAutoLogic.current = false;
+    hasHandledManualEntry.current = false;
   };
 
   const handleManualEntry = async () => {
+    hasHandledManualEntry.current = true;
     try {
       await stopAllMonitoring(); // Stop the monitoring process
-      console.log("Manual entry initiated, monitoring stopped.");
+      console.log("Manual entry initiated.");
     } catch (err) {
       console.error("Error while stopping monitoring:", err);
     }
 
-    setShowPullModal(false);
+    // setShowPullModal(false);
     await handleSubmit(new Event("submit"));
   };
 
