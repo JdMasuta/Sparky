@@ -286,8 +286,6 @@ export const monitorQuantity = async (req, res) => {
         return res.status(200).json({ success: false, aborted: true });
       }
 
-      console.log("Monitoring... ⏳");
-
       const completeRequestResult = await ddeClient.readTag(completeRequestTag);
       const completeRequest = completeRequestResult.value;
 

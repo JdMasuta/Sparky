@@ -25,8 +25,13 @@ function Checkout() {
     idMappings,
     setFormData
   );
-  const { startMonitoring, stopMonitoring, checkConnection, isMonitoring } =
-    useRSLinxMonitor();
+  const {
+    startMonitoring,
+    stopMonitoring,
+    stopAllMonitoring,
+    checkConnection,
+    isMonitoring,
+  } = useRSLinxMonitor();
   const { writeToPLC, resetStepInPLC } = usePLCTags();
   const { fieldRefs, focusNextField } = useFieldAutomation();
 
@@ -91,8 +96,7 @@ function Checkout() {
       const message = "alerting";
       alert("pause");
       if (isMonitoring) {
-        stopMonitoring();
-        stopMonitoring();
+        stopAllMonitoring();
         event.preventDefault();
         event.returnValue = message;
       } else {
@@ -194,7 +198,7 @@ function Checkout() {
 
   const handleManualEntry = async () => {
     try {
-      await stopMonitoring(); // Stop the monitoring process
+      await stopAllMonitoring(); // Stop the monitoring process
       console.log("Manual entry initiated, monitoring stopped.");
     } catch (err) {
       console.error("Error while stopping monitoring:", err);
@@ -281,7 +285,7 @@ function Checkout() {
         <PullOptionsModal
           isOpen={showPullModal}
           onClose={() => {
-            stopMonitoring();
+            stopAllMonitoring();
             setShowPullModal(false);
           }}
           onManualEntry={handleManualEntry}
