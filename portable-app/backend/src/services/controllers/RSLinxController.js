@@ -271,7 +271,6 @@ export const monitorQuantity = async (req, res) => {
       pollInterval = 500,
       timeout = 600000,
       quantityThreshold = 0,
-      completeRequestExpected = "1",
     } = req.query;
 
     const quantityTag = "Reel.RealData[0]";
@@ -286,6 +285,8 @@ export const monitorQuantity = async (req, res) => {
         console.log(`Monitoring session ${sessionId} was aborted.`);
         return res.status(200).json({ success: false, aborted: true });
       }
+
+      console.log("Monitoring... ⏳");
 
       const completeRequestResult = await ddeClient.readTag(completeRequestTag);
       const completeRequest = completeRequestResult.value;

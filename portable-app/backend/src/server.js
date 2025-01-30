@@ -44,6 +44,8 @@ app.use(
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// API Setup
 app.use("/api/rslinx", RSLinxRoutes);
 app.use("/api/email", emailRoutes);
 app.use("/api", cableDataRoutes);

@@ -58,7 +58,7 @@ function Checkout() {
 
     const initializePage = async () => {
       if (isFirstLoad && fieldRefs.name) {
-        await ensureDDEConnection(); // Await the ensureDDEConnection call
+        await ensureDDEConnection(); // Await the ensureDDEConnection call\
 
         fieldRefs.name.current.focus(); // Focus the first field (name)
         resetStepInPLC(); // Reset the step number in PLC
@@ -84,6 +84,30 @@ function Checkout() {
 
     initializePage(); // Call the async function
   }, [isFirstLoad, fieldRefs]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      console.log("RELOADING 🔫");
+      const message = "alerting";
+      alert("pause");
+      if (isMonitoring) {
+        stopMonitoring();
+        stopMonitoring();
+        event.preventDefault();
+        event.returnValue = message;
+      } else {
+        alert("Not Monitoring");
+        event.preventDefault();
+        event.returnValue = message;
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  });
 
   const handleFieldChange = async (e) => {
     const { name, value } = e.target;
