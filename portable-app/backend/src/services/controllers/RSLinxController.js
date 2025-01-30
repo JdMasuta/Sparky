@@ -271,7 +271,6 @@ export const monitorQuantity = async (req, res) => {
       pollInterval = 500,
       timeout = 600000,
       quantityThreshold = 0,
-      completeRequestExpected = "1",
     } = req.query;
 
     const quantityTag = "Reel.RealData[0]";

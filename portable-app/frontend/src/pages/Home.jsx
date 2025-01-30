@@ -4,7 +4,7 @@ import MainNavBar from "../components/shared/MainNavBar";
 function Home() {
   return (
     <div className="container">
-        <MainNavBar />
+      <MainNavBar />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import MainNavBar from "../components/shared/MainNavBar.jsx";
+import useAlerts from "../components/shared/Alerts/useAlerts";
 import { useCheckoutForm } from "../components/entry/useCheckoutForm";
 import { useCheckoutData } from "../components/entry/useCheckoutData";
 import { useCheckoutSubmit } from "../components/entry/useCheckoutSubmit";
@@ -11,6 +12,7 @@ import PullOptionsModal from "../components/entry/PullModal.jsx";
 
 function Checkout() {
   const [showPullModal, setShowPullModal] = useState(false);
+  const { addAlert } = useAlerts();
   const { options, idMappings } = useCheckoutData();
   const {
     formData,
@@ -18,15 +20,20 @@ function Checkout() {
     shouldShowField,
     handleInputChange,
     isValidSelection,
-    isValidQuantity,
+    isInvalidQuantity,
   } = useCheckoutForm(options);
   const { handleSubmit: submitCheckout, resetForm } = useCheckoutSubmit(
     formData,
     idMappings,
     setFormData
   );
-  const { startMonitoring, stopMonitoring, checkConnection, isMonitoring } =
-    useRSLinxMonitor();
+  const {
+    startMonitoring,
+    stopMonitoring,
+    stopAllMonitoring,
+    checkConnection,
+    isMonitoring,
+  } = useRSLinxMonitor();
   const { writeToPLC, resetStepInPLC } = usePLCTags();
   const { fieldRefs, focusNextField } = useFieldAutomation();
 
@@ -42,48 +49,88 @@ function Checkout() {
 
   // Focus the first field only on initial page load
   useEffect(() => {
+    const controller = new AbortController();
+
     const ensureDDEConnection = async () => {
       try {
-        const data = await checkConnection(); // Await the checkConnection call
+        const data = await checkConnection(); // If checkConnection uses fetch, you could pass controller.signal
         console.log("Connection status:", {
           available: data.available,
           message: data.message,
         });
         setDDEconnected(data.available);
       } catch (error) {
-        console.error("Error ensuring DDE connection:", error);
+        // Only log errors that aren't caused by an abort
+        if (error.name !== "AbortError") {
+          console.error("Error ensuring DDE connection:", error);
+        }
         setDDEconnected(false);
       }
     };
 
     const initializePage = async () => {
       if (isFirstLoad && fieldRefs.name) {
-        await ensureDDEConnection(); // Await the ensureDDEConnection call
+        try {
+          await ensureDDEConnection(); // Make sure connection is established
+          stopAllMonitoring();
 
-        fieldRefs.name.current.focus(); // Focus the first field (name)
-        resetStepInPLC(); // Reset the step number in PLC
+          fieldRefs.name.current.focus(); // Focus the name field
+          resetStepInPLC(); // Reset the step in the PLC
 
-        await fetch("/api/RSLinx/batch/write", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            tags: [
-              "_200_GLB.StringData[0]",
-              "_200_GLB.StringData[1]",
-              "_200_GLB.StringData[2]",
-            ],
-            values: ["", "", ""],
-          }),
-        });
+          // Send a POST request to clear string data
+          await fetch("/api/RSLinx/batch/write", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              tags: [
+                "_200_GLB.StringData[0]",
+                "_200_GLB.StringData[1]",
+                "_200_GLB.StringData[2]",
+              ],
+              values: ["", "", ""],
+            }),
+            signal: controller.signal, // Use the AbortController signal
+          });
 
-        setIsFirstLoad(false); // Set flag to prevent further focus
+          setIsFirstLoad(false); // Prevent further re-initialization
+          const connectionStatus = [
+            DDEconnected === true ? "connected" : "not connected...",
+            DDEconnected === true ? "success" : "error",
+          ];
+          addAlert({
+            message: `RSLinx is ${connectionStatus[0]}`,
+            severity: connectionStatus[1],
+            timeout: 5,
+          });
+        } catch (error) {
+          // Again, only log errors that aren't due to an abort
+          if (error.name !== "AbortError") {
+            console.error("Error initializing page:", error);
+          }
+        }
       }
     };
 
-    initializePage(); // Call the async function
+    initializePage();
+
+    // Cleanup: abort any ongoing fetch requests
+    return () => {
+      controller.abort();
+    };
   }, [isFirstLoad, fieldRefs]);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (isMonitoring) {
+        stopAllMonitoring();
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isMonitoring, stopAllMonitoring]);
 
   const handleFieldChange = async (e) => {
     const { name, value } = e.target;
@@ -163,14 +210,25 @@ function Checkout() {
     e.preventDefault();
     const success = await submitCheckout(e);
     if (success) {
+      addAlert({
+        message: "Checkout submission successful!",
+        severity: "success",
+        timeout: 5,
+      });
       await resetStepInPLC();
       fieldRefs.name.current.focus(); // Focus the first field (name)
+    } else {
+      addAlert({
+        message: "Checkout submission failed!",
+        severity: "error",
+        timeout: 5,
+      });
     }
   };
 
   const handleManualEntry = async () => {
     try {
-      await stopMonitoring(); // Stop the monitoring process
+      await stopAllMonitoring(); // Stop the monitoring process
       console.log("Manual entry initiated, monitoring stopped.");
     } catch (err) {
       console.error("Error while stopping monitoring:", err);
@@ -244,7 +302,7 @@ function Checkout() {
                   type="button"
                   className="manual-checkout-button"
                   onClick={handleManualEntry}
-                  disabled={isValidQuantity}
+                  disabled={isInvalidQuantity(formData.quantity)}
                 >
                   Manual Entry
                 </button>
@@ -257,7 +315,7 @@ function Checkout() {
         <PullOptionsModal
           isOpen={showPullModal}
           onClose={() => {
-            stopMonitoring();
+            stopAllMonitoring();
             setShowPullModal(false);
           }}
           onManualEntry={handleManualEntry}
